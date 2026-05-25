@@ -19,7 +19,8 @@
       "src/validate.php",
       "src/upload.php",
       "src/ip.php",
-      "src/mailer.php"
+      "src/mailer.php",
+      "src/retention.php"
     ]
   },
   "autoload-dev": {
