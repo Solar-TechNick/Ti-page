@@ -1,6 +1,10 @@
 <?php
 // backend/src/bootstrap.php — loaded by every entry point and by tests.
 
+if (file_exists(__DIR__ . '/../vendor/autoload.php')) {
+    require_once __DIR__ . '/../vendor/autoload.php';
+}
+
 if (!defined('TI_CONFIG')) {
     $configPath = __DIR__ . '/../config/config.php';
     if (!is_file($configPath)) {
