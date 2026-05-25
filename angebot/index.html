@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Angebot anfragen | Technik- & Instandsetzungs GmbH</title>
+    <meta
+      name="description"
+      content="Kostenlose Angebotsanfrage für Photovoltaik, Speicher, Wärmepumpe, Wallbox und Elektrotechnik bei Technik- & Instandsetzungs GmbH."
+    >
+    <link rel="preconnect" href="https://images.unsplash.com">
+    <link rel="stylesheet" href="../styles.css">
+    <script src="https://unpkg.com/lucide@1.14.0/dist/umd/lucide.min.js" defer></script>
+    <script src="../script.js" defer></script>
+  </head>
+  <body class="offer-page">
+    <header class="site-header offer-header is-scrolled" data-header>
+      <a class="brand" href="../" aria-label="Zur Startseite">
+        <span class="brand-mark">TI</span>
+        <span>
+          <strong>Technik & Instandsetzung</strong>
+          <small>GmbH</small>
+        </span>
+      </a>
+
+      <button class="nav-toggle" type="button" aria-label="Menü öffnen" aria-expanded="false" data-nav-toggle>
+        <i data-lucide="menu" aria-hidden="true"></i>
+      </button>
+
+      <nav class="site-nav" data-nav>
+        <a href="../#leistungen">Leistungen</a>
+        <a href="../#unternehmen">Unternehmen</a>
+        <a href="../#jobs">Jobs</a>
+        <a href="../#kontakt">Kontakt</a>
+      </nav>
+    </header>
+
+    <main class="offer-main">
+      <section class="offer-hero" aria-labelledby="offer-title">
+        <div class="offer-hero-copy">
+          <p class="eyebrow">Angebot in wenigen Minuten</p>
+          <h1 id="offer-title">Ihre Energie- oder Elektrotechnik-Anfrage.</h1>
+          <p>
+            Wählen Sie aus, was geplant werden soll. Wir prüfen die Eckdaten und melden uns mit den
+            nächsten sinnvollen Schritten persönlich zurück.
+          </p>
+          <div class="offer-trust" aria-label="Vorteile">
+            <span><i data-lucide="check-circle" aria-hidden="true"></i> kostenlos & unverbindlich</span>
+            <span><i data-lucide="clock" aria-hidden="true"></i> Rückmeldung nach Prüfung</span>
+            <span><i data-lucide="map-pin" aria-hidden="true"></i> regional aus Sükow</span>
+          </div>
+        </div>
+        <div class="offer-hero-image">
+          <img
+            src="https://images.unsplash.com/photo-1497440001374-f26997328c1b?auto=format&fit=crop&w=1200&q=82"
+            alt="Solarmodule auf einem Wohnhausdach"
+          >
+        </div>
+      </section>
+
+      <section class="offer-shell" aria-label="Geführte Angebotsanfrage">
+        <aside class="offer-sidebar">
+          <p class="eyebrow">Ablauf</p>
+          <h2>Was passiert danach?</h2>
+          <ol>
+            <li>
+              <strong>Anfrage senden</strong>
+              <span>Ihre Angaben werden als E-Mail vorbereitet.</span>
+            </li>
+            <li>
+              <strong>Technische Einschätzung</strong>
+              <span>Wir prüfen Objekt, Bedarf und mögliche Komponenten.</span>
+            </li>
+            <li>
+              <strong>Persönliches Angebot</strong>
+              <span>Sie erhalten die nächsten Schritte klar und nachvollziehbar.</span>
+            </li>
+          </ol>
+          <a class="sidebar-phone" href="tel:+493876612474">
+            <i data-lucide="phone" aria-hidden="true"></i>
+            +49 3876 612474
+          </a>
+        </aside>
+
+        <form class="offer-form" data-offer-form>
+          <div class="offer-progress" aria-label="Fortschritt">
+            <span data-offer-step-label>Schritt 1 von 5</span>
+            <div>
+              <span data-offer-progress></span>
+            </div>
+          </div>
+
+          <fieldset class="offer-step is-active" data-offer-step>
+            <legend>
+              <span>Angebotskomponenten</span>
+              Was soll Ihr Angebot enthalten?
+            </legend>
+            <div class="option-grid">
+              <label class="option-card">
+                <input type="checkbox" name="components" value="Photovoltaik">
+                <span><i data-lucide="sun" aria-hidden="true"></i> Photovoltaik</span>
+              </label>
+              <label class="option-card">
+                <input type="checkbox" name="components" value="Stromspeicher">
+                <span><i data-lucide="battery-charging" aria-hidden="true"></i> Stromspeicher</span>
+              </label>
+              <label class="option-card">
+                <input type="checkbox" name="components" value="Wallbox / Ladestation">
+                <span><i data-lucide="plug-zap" aria-hidden="true"></i> Wallbox</span>
+              </label>
+              <label class="option-card">
+                <input type="checkbox" name="components" value="Wärmepumpe">
+                <span><i data-lucide="thermometer" aria-hidden="true"></i> Wärmepumpe</span>
+              </label>
+              <label class="option-card">
+                <input type="checkbox" name="components" value="Elektroinstallation">
+                <span><i data-lucide="zap" aria-hidden="true"></i> Elektroinstallation</span>
+              </label>
+            </div>
+            <p class="step-error" data-step-error></p>
+          </fieldset>
+
+          <fieldset class="offer-step" data-offer-step>
+            <legend>
+              <span>Objekt</span>
+              Wo soll die Anlage oder Technik umgesetzt werden?
+            </legend>
+            <div class="option-grid">
+              <label class="option-card">
+                <input type="radio" name="building" value="Einfamilienhaus">
+                <span><i data-lucide="home" aria-hidden="true"></i> Einfamilienhaus</span>
+              </label>
+              <label class="option-card">
+                <input type="radio" name="building" value="Mehrfamilienhaus">
+                <span><i data-lucide="building-2" aria-hidden="true"></i> Mehrfamilienhaus</span>
+              </label>
+              <label class="option-card">
+                <input type="radio" name="building" value="Gewerbe">
+                <span><i data-lucide="factory" aria-hidden="true"></i> Gewerbe</span>
+              </label>
+              <label class="option-card">
+                <input type="radio" name="building" value="Industrie / Anlage">
+                <span><i data-lucide="warehouse" aria-hidden="true"></i> Industrie / Anlage</span>
+              </label>
+            </div>
+            <label class="offer-field">
+              Standort / PLZ
+              <input name="location" autocomplete="postal-code" placeholder="z. B. 19348 Sükow">
+            </label>
+            <p class="step-error" data-step-error></p>
+          </fieldset>
+
+          <fieldset class="offer-step" data-offer-step>
+            <legend>
+              <span>Dach & Verbrauch</span>
+              Welche Eckdaten kennen Sie bereits?
+            </legend>
+            <div class="form-row">
+              <label>
+                Dachform
+                <select name="roof">
+                  <option value="">Bitte auswählen</option>
+                  <option>Satteldach</option>
+                  <option>Flachdach</option>
+                  <option>Walmdach</option>
+                  <option>Pultdach</option>
+                  <option>Noch unklar</option>
+                </select>
+              </label>
+              <label>
+                Haushaltsgröße / Nutzung
+                <select name="usage">
+                  <option value="">Bitte auswählen</option>
+                  <option>1-2 Personen</option>
+                  <option>3-4 Personen</option>
+                  <option>5+ Personen</option>
+                  <option>Gewerbliche Nutzung</option>
+                  <option>Noch unklar</option>
+                </select>
+              </label>
+            </div>
+            <div class="form-row">
+              <label>
+                Jahresverbrauch, falls bekannt
+                <input name="consumption" inputmode="numeric" placeholder="z. B. 4.500 kWh">
+              </label>
+              <label>
+                Gewünschter Zeitraum
+                <select name="timeline">
+                  <option value="">Bitte auswählen</option>
+                  <option>Schnellstmöglich</option>
+                  <option>In 1-3 Monaten</option>
+                  <option>In 3-6 Monaten</option>
+                  <option>Erstberatung / Orientierung</option>
+                </select>
+              </label>
+            </div>
+          </fieldset>
+
+          <fieldset class="offer-step" data-offer-step>
+            <legend>
+              <span>Details</span>
+              Was sollten wir vorab wissen?
+            </legend>
+            <label>
+              Kurzbeschreibung
+              <textarea
+                name="details"
+                rows="6"
+                placeholder="z. B. vorhandene Heizung, Dachausrichtung, Wallbox-Wunsch, bestehende Elektroverteilung"
+              ></textarea>
+            </label>
+            <label class="consent">
+              <input type="checkbox" name="photos" value="Fotos können nachgereicht werden">
+              <span>Fotos, Stromrechnung oder vorhandene Angebote kann ich bei Bedarf nachreichen.</span>
+            </label>
+          </fieldset>
+
+          <fieldset class="offer-step" data-offer-step>
+            <legend>
+              <span>Kontaktdaten</span>
+              Wohin dürfen wir uns zurückmelden?
+            </legend>
+            <div class="form-row">
+              <label>
+                Name
+                <input name="name" autocomplete="name" required>
+              </label>
+              <label>
+                Telefon
+                <input name="phone" autocomplete="tel" required>
+              </label>
+            </div>
+            <label>
+              E-Mail
+              <input name="email" type="email" autocomplete="email" required>
+            </label>
+            <label class="consent">
+              <input type="checkbox" name="privacy" required>
+              <span>Ich habe die <a href="../datenschutzerklaerung/">Datenschutzerklärung</a> gelesen und verstanden.</span>
+            </label>
+            <p class="step-error" data-step-error></p>
+          </fieldset>
+
+          <div class="offer-actions">
+            <button class="button ghost" type="button" data-offer-back>
+              <i data-lucide="arrow-left" aria-hidden="true"></i>
+              Zurück
+            </button>
+            <button class="button primary" type="button" data-offer-next>
+              Weiter
+              <i data-lucide="arrow-right" aria-hidden="true"></i>
+            </button>
+            <button class="button primary is-hidden" type="submit" data-offer-submit>
+              <i data-lucide="send" aria-hidden="true"></i>
+              Anfrage senden
+            </button>
+          </div>
+          <p class="form-status" role="status" data-offer-status></p>
+        </form>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div>
+        <strong>Technik- & Instandsetzungs GmbH</strong>
+        <span>Quitzower Damm 15, 19348 Sükow</span>
+      </div>
+      <nav aria-label="Rechtliches">
+        <a href="../impressum/">Impressum</a>
+        <a href="../datenschutzerklaerung/">Datenschutzerklärung</a>
+      </nav>
+    </footer>
+  </body>
+</html>
