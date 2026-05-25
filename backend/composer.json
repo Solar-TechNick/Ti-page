@@ -1,0 +1,30 @@
+{
+  "name": "ti-prignitz/backend",
+  "description": "Contact + Angebot backend for Ti-page",
+  "type": "project",
+  "require": {
+    "php": ">=8.2"
+  },
+  "require-dev": {
+    "phpunit/phpunit": "^10.5"
+  },
+  "autoload": {
+    "files": [
+      "src/db.php",
+      "src/http.php",
+      "src/cors.php",
+      "src/csrf.php",
+      "src/auth.php",
+      "src/rate_limit.php",
+      "src/validate.php",
+      "src/upload.php",
+      "src/ip.php",
+      "src/mailer.php",
+      "src/retention.php"
+    ]
+  },
+  "autoload-dev": {
+    "psr-4": { "Ti\\Tests\\": "tests/" }
+  },
+  "config": { "sort-packages": true }
+}

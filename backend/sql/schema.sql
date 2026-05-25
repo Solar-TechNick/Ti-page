@@ -1,0 +1,71 @@
+-- backend/sql/schema.sql
+-- Idempotent — safe to re-run.
+
+CREATE TABLE IF NOT EXISTS contact_requests (
+    id              INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    name            VARCHAR(200) NOT NULL,
+    contact         VARCHAR(200) NOT NULL,
+    topic           VARCHAR(200) NULL,
+    message         TEXT NOT NULL,
+    ip_address      VARBINARY(16) NULL,
+    user_agent      VARCHAR(500) NULL,
+    status          ENUM('new','in_progress','handled','spam') NOT NULL DEFAULT 'new',
+    handled_at      DATETIME NULL,
+    notes           TEXT NULL,
+    INDEX (created_at),
+    INDEX (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS angebot_requests (
+    id              INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    name            VARCHAR(200) NOT NULL,
+    phone           VARCHAR(100) NOT NULL,
+    email           VARCHAR(200) NOT NULL,
+    components      VARCHAR(500) NOT NULL,
+    building        VARCHAR(100) NULL,
+    location        VARCHAR(200) NULL,
+    roof            VARCHAR(100) NULL,
+    usage_profile   VARCHAR(100) NULL,
+    consumption     VARCHAR(100) NULL,
+    timeline        VARCHAR(100) NULL,
+    details         TEXT NULL,
+    photos_followup TINYINT(1) NOT NULL DEFAULT 0,
+    ip_address      VARBINARY(16) NULL,
+    user_agent      VARCHAR(500) NULL,
+    status          ENUM('new','in_progress','handled','spam') NOT NULL DEFAULT 'new',
+    handled_at      DATETIME NULL,
+    notes           TEXT NULL,
+    INDEX (created_at),
+    INDEX (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS angebot_attachments (
+    id             INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    angebot_id     INT UNSIGNED NOT NULL,
+    stored_name    VARCHAR(120) NOT NULL,
+    original_name  VARCHAR(255) NOT NULL,
+    mime_type      VARCHAR(100) NOT NULL,
+    size_bytes     INT UNSIGNED NOT NULL,
+    created_at     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (angebot_id) REFERENCES angebot_requests(id) ON DELETE CASCADE,
+    INDEX (angebot_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS rate_limit (
+    ip_address      VARBINARY(16) NOT NULL,
+    window_start    DATETIME NOT NULL,
+    request_count   INT UNSIGNED NOT NULL DEFAULT 1,
+    PRIMARY KEY (ip_address, window_start)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS users (
+    id              INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    username        VARCHAR(50) NOT NULL UNIQUE,
+    password_hash   CHAR(60) NOT NULL,
+    created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_login      DATETIME NULL,
+    failed_logins   TINYINT UNSIGNED NOT NULL DEFAULT 0,
+    locked_until    DATETIME NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
