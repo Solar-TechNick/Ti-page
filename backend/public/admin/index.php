@@ -62,6 +62,7 @@ foreach (['contact_requests' => 'contact', 'angebot_requests' => 'angebot'] as $
     <nav class="tabs">
       <a class="<?= $tab==='angebot'?'active':'' ?>" href="?tab=angebot">Angebot (<?= $counts['angebot'] ?> neu)</a>
       <a class="<?= $tab==='contact'?'active':'' ?>" href="?tab=contact">Kontakt (<?= $counts['contact'] ?> neu)</a>
+      <a href="/vouchers.php">Gutscheine</a>
     </nav>
 
     <form class="filters" method="get">
