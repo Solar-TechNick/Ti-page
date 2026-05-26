@@ -69,3 +69,22 @@ CREATE TABLE IF NOT EXISTS users (
     failed_logins   TINYINT UNSIGNED NOT NULL DEFAULT 0,
     locked_until    DATETIME NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS vouchers (
+    id          INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    code        VARCHAR(50) NOT NULL,
+    expires_at  DATETIME NULL,
+    active      TINYINT(1) NOT NULL DEFAULT 1,
+    created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uniq_code (code)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Idempotent add of voucher_code column on angebot_requests
+SET @col := (SELECT COUNT(*) FROM information_schema.columns
+             WHERE table_schema = DATABASE()
+               AND table_name = 'angebot_requests'
+               AND column_name = 'voucher_code');
+SET @sql := IF(@col = 0,
+  'ALTER TABLE angebot_requests ADD COLUMN voucher_code VARCHAR(50) NULL AFTER details',
+  'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;

@@ -17,7 +17,7 @@ abstract class TestCase extends PHPUnitTestCase
     private function truncateAll(): void
     {
         $this->pdo->exec('SET FOREIGN_KEY_CHECKS = 0');
-        foreach (['angebot_attachments','angebot_requests','contact_requests','rate_limit','users'] as $t) {
+        foreach (['angebot_attachments','angebot_requests','contact_requests','rate_limit','users','vouchers'] as $t) {
             $this->pdo->exec("TRUNCATE TABLE {$t}");
         }
         $this->pdo->exec('SET FOREIGN_KEY_CHECKS = 1');
