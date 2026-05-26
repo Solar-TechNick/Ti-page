@@ -20,7 +20,8 @@
       "src/upload.php",
       "src/ip.php",
       "src/mailer.php",
-      "src/retention.php"
+      "src/retention.php",
+      "src/voucher.php"
     ]
   },
   "autoload-dev": {
