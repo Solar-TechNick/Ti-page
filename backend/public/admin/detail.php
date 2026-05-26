@@ -57,6 +57,7 @@ $msg = $_GET['msg'] ?? null;
           <dt>Nutzung</dt><dd><?= htmlspecialchars($row['usage_profile'] ?? '—') ?></dd>
           <dt>Verbrauch</dt><dd><?= htmlspecialchars($row['consumption'] ?? '—') ?></dd>
           <dt>Zeitraum</dt><dd><?= htmlspecialchars($row['timeline'] ?? '—') ?></dd>
+          <dt>Gutscheincode</dt><dd><?= htmlspecialchars($row['voucher_code'] ?? '—') ?></dd>
           <dt>Details</dt><dd style="white-space:pre-wrap"><?= htmlspecialchars($row['details'] ?? '—') ?></dd>
         <?php else: ?>
           <dt>Kontakt</dt><dd><?= htmlspecialchars($row['contact']) ?></dd>
