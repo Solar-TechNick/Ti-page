@@ -31,12 +31,15 @@ function angebot_handle(array $input, array $filesSuperglobal, ?string $packed_i
 
     $components = implode(', ', array_map('trim', $input['components']));
 
+    $voucherCode = isset($input['voucher_code']) ? trim((string)$input['voucher_code']) : '';
+    $voucherCode = $voucherCode === '' ? null : $voucherCode;
+
     $stmt = db()->prepare(
         "INSERT INTO angebot_requests
         (name, phone, email, components, building, location, roof, usage_profile,
-         consumption, timeline, details, photos_followup, ip_address, user_agent)
+         consumption, timeline, details, voucher_code, photos_followup, ip_address, user_agent)
         VALUES (:name,:phone,:email,:components,:building,:location,:roof,:usage,
-                :consumption,:timeline,:details,:photos,:ip,:ua)"
+                :consumption,:timeline,:details,:voucher,:photos,:ip,:ua)"
     );
     $stmt->execute([
         ':name'        => trim($input['name']),
@@ -50,6 +53,7 @@ function angebot_handle(array $input, array $filesSuperglobal, ?string $packed_i
         ':consumption' => $input['consumption'] ?? null,
         ':timeline'    => $input['timeline']    ?? null,
         ':details'     => $input['details']     ?? null,
+        ':voucher'     => $voucherCode,
         ':photos'      => !empty($input['photos_followup']) ? 1 : 0,
         ':ip'          => $packed_ip,
         ':ua'          => mb_substr($userAgent, 0, 500),
@@ -85,7 +89,20 @@ function _angebot_notify_operator(int $id, array $in, string $components, array 
         ? sprintf('Anhänge: %d Dateien (%.1f MB) — im Admin ansehen:', count($attachments), $totalSize/1024/1024)
         : 'Anhänge: keine';
 
-    $body = implode("\n", [
+    $voucherLine = !empty($in['voucher_code']) ? trim((string)$in['voucher_code']) : '';
+    $projectLines = [
+        '  Komponenten:  ' . $components,
+        '  Objekt:       ' . ($in['building']    ?? '-'),
+        '  Standort/PLZ: ' . ($in['location']    ?? '-'),
+        '  Dachform:     ' . ($in['roof']        ?? '-'),
+        '  Nutzung:      ' . ($in['usage']       ?? '-'),
+        '  Verbrauch:    ' . ($in['consumption'] ?? '-'),
+        '  Zeitraum:     ' . ($in['timeline']    ?? '-'),
+    ];
+    if ($voucherLine !== '') {
+        $projectLines[] = '  Gutscheincode: ' . $voucherLine;
+    }
+    $body = implode("\n", array_merge([
         'Neue Angebotsanfrage:',
         '',
         'Kontakt',
@@ -94,13 +111,7 @@ function _angebot_notify_operator(int $id, array $in, string $components, array 
         '  E-Mail:  ' . $in['email'],
         '',
         'Projekt',
-        '  Komponenten:  ' . $components,
-        '  Objekt:       ' . ($in['building']    ?? '-'),
-        '  Standort/PLZ: ' . ($in['location']    ?? '-'),
-        '  Dachform:     ' . ($in['roof']        ?? '-'),
-        '  Nutzung:      ' . ($in['usage']       ?? '-'),
-        '  Verbrauch:    ' . ($in['consumption'] ?? '-'),
-        '  Zeitraum:     ' . ($in['timeline']    ?? '-'),
+    ], $projectLines, [
         '',
         'Details:',
         $in['details'] ?? '-',
@@ -112,7 +123,7 @@ function _angebot_notify_operator(int $id, array $in, string $components, array 
         'Eingegangen: ' . date('d.m.Y H:i'),
         'Im Admin:    ' . $adminUrl,
         'Antwort an:  ' . $in['email'],
-    ]);
+    ]));
     send_mail([
         'to'       => $cfg['to_address'],
         'subject'  => "Neue Angebotsanfrage: {$components} (#{$id})",

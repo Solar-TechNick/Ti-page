@@ -103,4 +103,63 @@ class AngebotEndpointTest extends TestCase
         ], $files, pack_ip('192.0.2.54'), 'UA');
         $this->assertSame(413, $result['status']);
     }
+
+    public function testValidVoucherIsStoredAndEmailed(): void
+    {
+        db()->prepare("INSERT INTO vouchers (code) VALUES (?)")->execute(['MESSE2026']);
+
+        $result = angebot_handle([
+            'name'=>'V','phone'=>'1','email'=>'v@example.de',
+            'components'=>['Photovoltaik'],'privacy'=>'1',
+            'voucher_code'=>'MESSE2026',
+        ], [], pack_ip('192.0.2.60'), 'UA');
+
+        $this->assertSame(200, $result['status']);
+        $row = db()->query('SELECT voucher_code FROM angebot_requests')->fetch();
+        $this->assertSame('MESSE2026', $row['voucher_code']);
+
+        // Operator email is the first mail captured; visitor reply is the second.
+        $this->assertStringContainsString('Gutscheincode: MESSE2026', $this->mails[0]['body']);
+    }
+
+    public function testInvalidVoucherRejectsSubmission(): void
+    {
+        $result = angebot_handle([
+            'name'=>'V','phone'=>'1','email'=>'v@example.de',
+            'components'=>['Photovoltaik'],'privacy'=>'1',
+            'voucher_code'=>'BOGUS',
+        ], [], pack_ip('192.0.2.61'), 'UA');
+
+        $this->assertSame(400, $result['status']);
+        $this->assertSame('validation', $result['body']['error']);
+        $this->assertArrayHasKey('voucher_code', $result['body']['fields']);
+        $this->assertSame(0, (int)db()->query('SELECT COUNT(*) FROM angebot_requests')->fetchColumn());
+        $this->assertCount(0, $this->mails);
+    }
+
+    public function testMissingVoucherFieldStoresNull(): void
+    {
+        $result = angebot_handle([
+            'name'=>'V','phone'=>'1','email'=>'v@example.de',
+            'components'=>['Photovoltaik'],'privacy'=>'1',
+        ], [], pack_ip('192.0.2.62'), 'UA');
+
+        $this->assertSame(200, $result['status']);
+        $row = db()->query('SELECT voucher_code FROM angebot_requests')->fetch();
+        $this->assertNull($row['voucher_code']);
+    }
+
+    public function testTrimmedVoucherIsStoredAsTyped(): void
+    {
+        db()->prepare("INSERT INTO vouchers (code) VALUES (?)")->execute(['TRIMME']);
+        $result = angebot_handle([
+            'name'=>'V','phone'=>'1','email'=>'v@example.de',
+            'components'=>['Photovoltaik'],'privacy'=>'1',
+            'voucher_code'=>'  TRIMME  ',
+        ], [], pack_ip('192.0.2.63'), 'UA');
+
+        $this->assertSame(200, $result['status']);
+        $row = db()->query('SELECT voucher_code FROM angebot_requests')->fetch();
+        $this->assertSame('TRIMME', $row['voucher_code']);
+    }
 }
