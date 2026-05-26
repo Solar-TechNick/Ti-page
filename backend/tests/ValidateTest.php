@@ -1,7 +1,7 @@
 <?php
 namespace Ti\Tests;
 
-class ValidateTest extends \PHPUnit\Framework\TestCase
+class ValidateTest extends TestCase
 {
     public function testRequiredMissing(): void
     {
@@ -60,5 +60,57 @@ class ValidateTest extends \PHPUnit\Framework\TestCase
         $this->assertTrue(is_honeypot_triggered(['website' => 'something']));
         $this->assertFalse(is_honeypot_triggered(['website' => '']));
         $this->assertFalse(is_honeypot_triggered([]));
+    }
+
+    private function seedVoucher(string $code, ?string $expiresAt = null, int $active = 1): void
+    {
+        db()->prepare("INSERT INTO vouchers (code, expires_at, active) VALUES (?, ?, ?)")
+            ->execute([$code, $expiresAt, $active]);
+    }
+
+    private function baseValidAngebot(): array
+    {
+        return [
+            'name'=>'M','phone'=>'1','email'=>'a@b.de',
+            'components'=>['Photovoltaik'],'privacy'=>'1',
+        ];
+    }
+
+    public function testAngebotEmptyVoucherIsAccepted(): void
+    {
+        $errors = validate_angebot($this->baseValidAngebot() + ['voucher_code' => '']);
+        $this->assertArrayNotHasKey('voucher_code', $errors);
+    }
+
+    public function testAngebotMissingVoucherKeyIsAccepted(): void
+    {
+        $errors = validate_angebot($this->baseValidAngebot());
+        $this->assertArrayNotHasKey('voucher_code', $errors);
+    }
+
+    public function testAngebotValidVoucherIsAccepted(): void
+    {
+        $this->seedVoucher('GOODCODE');
+        $errors = validate_angebot($this->baseValidAngebot() + ['voucher_code' => 'GOODCODE']);
+        $this->assertArrayNotHasKey('voucher_code', $errors);
+    }
+
+    public function testAngebotUnknownVoucherIsRejected(): void
+    {
+        $errors = validate_angebot($this->baseValidAngebot() + ['voucher_code' => 'NOPE']);
+        $this->assertSame('Gutscheincode ungültig oder abgelaufen.', $errors['voucher_code'] ?? null);
+    }
+
+    public function testAngebotExpiredVoucherIsRejected(): void
+    {
+        $this->seedVoucher('OLD', date('Y-m-d H:i:s', strtotime('-1 hour')));
+        $errors = validate_angebot($this->baseValidAngebot() + ['voucher_code' => 'OLD']);
+        $this->assertSame('Gutscheincode ungültig oder abgelaufen.', $errors['voucher_code'] ?? null);
+    }
+
+    public function testAngebotVoucherTooLong(): void
+    {
+        $errors = validate_angebot($this->baseValidAngebot() + ['voucher_code' => str_repeat('a', 51)]);
+        $this->assertSame('Gutscheincode darf höchstens 50 Zeichen lang sein.', $errors['voucher_code'] ?? null);
     }
 }

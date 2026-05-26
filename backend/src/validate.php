@@ -75,5 +75,14 @@ function validate_angebot(array $in): array
         $errors['details'] = 'Details dürfen höchstens 5000 Zeichen lang sein.';
     }
 
+    if (isset($in['voucher_code']) && trim((string)$in['voucher_code']) !== '') {
+        $code = trim((string)$in['voucher_code']);
+        if (mb_strlen($code) > 50) {
+            $errors['voucher_code'] = 'Gutscheincode darf höchstens 50 Zeichen lang sein.';
+        } elseif (find_active_voucher($code) === null) {
+            $errors['voucher_code'] = 'Gutscheincode ungültig oder abgelaufen.';
+        }
+    }
+
     return $errors;
 }
