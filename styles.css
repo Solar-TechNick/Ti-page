@@ -101,7 +101,15 @@ textarea {
   border: 0;
   background: transparent;
   padding: 0;
+  width: auto;
+  height: 48px;
   object-fit: contain;
+  filter: invert(1);
+}
+
+.site-header.is-scrolled .brand-mark.brand-logo,
+.site-header.is-open .brand-mark.brand-logo {
+  filter: none;
 }
 
 .brand strong,
