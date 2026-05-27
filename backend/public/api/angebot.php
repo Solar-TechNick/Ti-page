@@ -36,23 +36,29 @@ function angebot_handle(array $input, array $filesSuperglobal, ?string $packed_i
 
     $stmt = db()->prepare(
         "INSERT INTO angebot_requests
-        (name, phone, email, components, building, location, roof, usage_profile,
-         consumption, timeline, details, voucher_code, photos_followup, ip_address, user_agent)
-        VALUES (:name,:phone,:email,:components,:building,:location,:roof,:usage,
-                :consumption,:timeline,:details,:voucher,:photos,:ip,:ua)"
+        (name, phone, email, components, building,
+         address_street, address_postal, address_city,
+         roof, usage_profile, consumption, timeline, details,
+         voucher_code, photos_followup, ip_address, user_agent)
+        VALUES (:name,:phone,:email,:components,:building,
+                :addr_street,:addr_postal,:addr_city,
+                :roof,:usage,:consumption,:timeline,:details,
+                :voucher,:photos,:ip,:ua)"
     );
     $stmt->execute([
         ':name'        => trim($input['name']),
         ':phone'       => trim($input['phone']),
         ':email'       => trim($input['email']),
         ':components'  => mb_substr($components, 0, 500),
-        ':building'    => $input['building']    ?? null,
-        ':location'    => $input['location']    ?? null,
-        ':roof'        => $input['roof']        ?? null,
-        ':usage'       => $input['usage']       ?? null,
-        ':consumption' => $input['consumption'] ?? null,
-        ':timeline'    => $input['timeline']    ?? null,
-        ':details'     => $input['details']     ?? null,
+        ':building'    => $input['building']       ?? null,
+        ':addr_street' => $input['address_street'] ?? null,
+        ':addr_postal' => $input['address_postal'] ?? null,
+        ':addr_city'   => $input['address_city']   ?? null,
+        ':roof'        => $input['roof']           ?? null,
+        ':usage'       => $input['usage']          ?? null,
+        ':consumption' => $input['consumption']    ?? null,
+        ':timeline'    => $input['timeline']       ?? null,
+        ':details'     => $input['details']        ?? null,
         ':voucher'     => $voucherCode,
         ':photos'      => !empty($input['photos_followup']) ? 1 : 0,
         ':ip'          => $packed_ip,
@@ -90,10 +96,17 @@ function _angebot_notify_operator(int $id, array $in, string $components, array 
         : 'Anhänge: keine';
 
     $voucherLine = !empty($in['voucher_code']) ? trim((string)$in['voucher_code']) : '';
+
+    $street   = trim((string)($in['address_street'] ?? ''));
+    $cityLine = trim(($in['address_postal'] ?? '') . ' ' . ($in['address_city'] ?? ''));
+    $street   = $street   === '' ? '-' : $street;
+    $cityLine = $cityLine === '' ? '-' : $cityLine;
+
     $projectLines = [
         '  Komponenten:  ' . $components,
         '  Objekt:       ' . ($in['building']    ?? '-'),
-        '  Standort/PLZ: ' . ($in['location']    ?? '-'),
+        '  Adresse:      ' . $street,
+        '                ' . $cityLine,
         '  Dachform:     ' . ($in['roof']        ?? '-'),
         '  Nutzung:      ' . ($in['usage']       ?? '-'),
         '  Verbrauch:    ' . ($in['consumption'] ?? '-'),
@@ -134,6 +147,12 @@ function _angebot_notify_operator(int $id, array $in, string $components, array 
 
 function _angebot_autoreply_visitor(array $in, string $components): void
 {
+    $addressParts = array_filter([
+        trim((string)($in['address_street'] ?? '')),
+        trim(trim((string)($in['address_postal'] ?? '')) . ' ' . trim((string)($in['address_city'] ?? ''))),
+    ], fn($p) => $p !== '');
+    $addressLine = $addressParts ? implode(', ', $addressParts) : '-';
+
     $body = implode("\n", [
         'Vielen Dank für Ihre Angebotsanfrage.',
         '',
@@ -142,7 +161,7 @@ function _angebot_autoreply_visitor(array $in, string $components): void
         'Ihre Angaben (Auszug):',
         '  Komponenten: ' . $components,
         '  Objekt:      ' . ($in['building'] ?? '-'),
-        '  Standort:    ' . ($in['location'] ?? '-'),
+        '  Adresse:     ' . $addressLine,
         '',
         '────────────────────────────',
         'Technik- & Instandsetzungs GmbH',

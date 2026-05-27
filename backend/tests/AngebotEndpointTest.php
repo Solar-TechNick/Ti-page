@@ -162,4 +162,64 @@ class AngebotEndpointTest extends TestCase
         $row = db()->query('SELECT voucher_code FROM angebot_requests')->fetch();
         $this->assertSame('TRIMME', $row['voucher_code']);
     }
+
+    public function testAddressFieldsArePersisted(): void
+    {
+        $result = angebot_handle([
+            'name'=>'Anna','phone'=>'1','email'=>'a@b.de',
+            'components'=>['Photovoltaik'],'privacy'=>'1',
+            'address_street'=>'Quitzower Damm 15',
+            'address_postal'=>'19348',
+            'address_city'=>'Sükow',
+        ], [], pack_ip('192.0.2.70'), 'UA');
+
+        $this->assertSame(200, $result['status']);
+        $row = db()->query('SELECT * FROM angebot_requests')->fetch();
+        $this->assertSame('Quitzower Damm 15', $row['address_street']);
+        $this->assertSame('19348',             $row['address_postal']);
+        $this->assertSame('Sükow',             $row['address_city']);
+    }
+
+    public function testOperatorEmailContainsAddressBlock(): void
+    {
+        angebot_handle([
+            'name'=>'Anna','phone'=>'1','email'=>'a@b.de',
+            'components'=>['Photovoltaik'],'privacy'=>'1',
+            'address_street'=>'Quitzower Damm 15',
+            'address_postal'=>'19348',
+            'address_city'=>'Sükow',
+        ], [], pack_ip('192.0.2.71'), 'UA');
+
+        $this->assertStringContainsString('Adresse:', $this->mails[0]['body']);
+        $this->assertStringContainsString('Quitzower Damm 15', $this->mails[0]['body']);
+        $this->assertStringContainsString('19348 Sükow',       $this->mails[0]['body']);
+        $this->assertStringNotContainsString('Standort/PLZ',   $this->mails[0]['body']);
+    }
+
+    public function testVisitorAutoreplyContainsAddress(): void
+    {
+        angebot_handle([
+            'name'=>'Anna','phone'=>'1','email'=>'a@b.de',
+            'components'=>['Photovoltaik'],'privacy'=>'1',
+            'address_street'=>'Quitzower Damm 15',
+            'address_postal'=>'19348',
+            'address_city'=>'Sükow',
+        ], [], pack_ip('192.0.2.72'), 'UA');
+
+        // Visitor reply is the second captured mail.
+        $this->assertStringContainsString('Adresse:', $this->mails[1]['body']);
+        $this->assertStringContainsString('Quitzower Damm 15, 19348 Sükow', $this->mails[1]['body']);
+    }
+
+    public function testEmailAddressFallsBackToDashWhenAllFieldsEmpty(): void
+    {
+        angebot_handle([
+            'name'=>'Anna','phone'=>'1','email'=>'a@b.de',
+            'components'=>['Photovoltaik'],'privacy'=>'1',
+        ], [], pack_ip('192.0.2.73'), 'UA');
+
+        // Operator email: street line should show '-' and the combined PLZ/Ort line too.
+        $body = $this->mails[0]['body'];
+        $this->assertMatchesRegularExpression('/Adresse:\s+-/', $body);
+    }
 }
