@@ -158,17 +158,17 @@
               </label>
             </div>
             <label class="offer-field">
-              Strasse und Hausnummer
-              <input name="address_street" autocomplete="street-address" maxlength="200" placeholder="z. B. Quitzower Damm 15">
+              Strasse und Hausnummer <span class="req-mark" aria-hidden="true">*</span>
+              <input name="address_street" autocomplete="street-address" maxlength="200" placeholder="z. B. Quitzower Damm 15" required>
             </label>
             <div class="form-row">
               <label>
-                PLZ
-                <input name="address_postal" autocomplete="postal-code" maxlength="20" inputmode="numeric" placeholder="z. B. 19348">
+                PLZ <span class="req-mark" aria-hidden="true">*</span>
+                <input name="address_postal" autocomplete="postal-code" maxlength="20" inputmode="numeric" placeholder="z. B. 19348" required>
               </label>
               <label>
-                Ort
-                <input name="address_city" autocomplete="address-level2" maxlength="100" placeholder="z. B. Sükow">
+                Ort <span class="req-mark" aria-hidden="true">*</span>
+                <input name="address_city" autocomplete="address-level2" maxlength="100" placeholder="z. B. Sükow" required>
               </label>
             </div>
             <p class="step-error" data-step-error></p>

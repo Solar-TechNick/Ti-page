@@ -31,6 +31,7 @@ class AngebotEndpointTest extends TestCase
             'name'=>'Anna','phone'=>'1','email'=>'a@b.de',
             'components'=>['Photovoltaik','Stromspeicher'],
             'building'=>'Einfamilienhaus','location'=>'19348',
+            'address_street'=>'Hauptstr. 1','address_postal'=>'19348','address_city'=>'Sükow',
             'roof'=>'Satteldach','usage'=>'3-4 Personen',
             'consumption'=>'4500','timeline'=>'In 1-3 Monaten',
             'details'=>'PV bitte','photos_followup'=>'1','privacy'=>'1',
@@ -78,6 +79,7 @@ class AngebotEndpointTest extends TestCase
         $result = angebot_handle([
             'name'=>'Anna','phone'=>'1','email'=>'a@b.de',
             'components'=>['Photovoltaik'],'privacy'=>'1',
+            'address_street'=>'Hauptstr. 1','address_postal'=>'19348','address_city'=>'Sükow',
         ], $files, pack_ip('192.0.2.53'), 'UA');
 
         $this->assertSame(200, $result['status']);
@@ -100,6 +102,7 @@ class AngebotEndpointTest extends TestCase
         $result = angebot_handle([
             'name'=>'A','phone'=>'1','email'=>'a@b.de',
             'components'=>['x'],'privacy'=>'1',
+            'address_street'=>'Hauptstr. 1','address_postal'=>'19348','address_city'=>'Sükow',
         ], $files, pack_ip('192.0.2.54'), 'UA');
         $this->assertSame(413, $result['status']);
     }
@@ -111,6 +114,7 @@ class AngebotEndpointTest extends TestCase
         $result = angebot_handle([
             'name'=>'V','phone'=>'1','email'=>'v@example.de',
             'components'=>['Photovoltaik'],'privacy'=>'1',
+            'address_street'=>'Hauptstr. 1','address_postal'=>'19348','address_city'=>'Sükow',
             'voucher_code'=>'MESSE2026',
         ], [], pack_ip('192.0.2.60'), 'UA');
 
@@ -142,6 +146,7 @@ class AngebotEndpointTest extends TestCase
         $result = angebot_handle([
             'name'=>'V','phone'=>'1','email'=>'v@example.de',
             'components'=>['Photovoltaik'],'privacy'=>'1',
+            'address_street'=>'Hauptstr. 1','address_postal'=>'19348','address_city'=>'Sükow',
         ], [], pack_ip('192.0.2.62'), 'UA');
 
         $this->assertSame(200, $result['status']);
@@ -155,6 +160,7 @@ class AngebotEndpointTest extends TestCase
         $result = angebot_handle([
             'name'=>'V','phone'=>'1','email'=>'v@example.de',
             'components'=>['Photovoltaik'],'privacy'=>'1',
+            'address_street'=>'Hauptstr. 1','address_postal'=>'19348','address_city'=>'Sükow',
             'voucher_code'=>'  TRIMME  ',
         ], [], pack_ip('192.0.2.63'), 'UA');
 
@@ -216,6 +222,7 @@ class AngebotEndpointTest extends TestCase
         $result = angebot_handle([
             'name'=>'Multi','phone'=>'1','email'=>'m@b.de',
             'components'=>['Photovoltaik'],'privacy'=>'1',
+            'address_street'=>'Hauptstr. 1','address_postal'=>'19348','address_city'=>'Sükow',
             'building'=>['Einfamilienhaus', 'Carport / Garage', 'Freiland'],
         ], [], pack_ip('192.0.2.80'), 'UA');
 
@@ -228,15 +235,19 @@ class AngebotEndpointTest extends TestCase
         );
     }
 
-    public function testEmailAddressFallsBackToDashWhenAllFieldsEmpty(): void
+    public function testMissingAddressFieldsAreRejected(): void
     {
-        angebot_handle([
+        $result = angebot_handle([
             'name'=>'Anna','phone'=>'1','email'=>'a@b.de',
             'components'=>['Photovoltaik'],'privacy'=>'1',
         ], [], pack_ip('192.0.2.73'), 'UA');
 
-        // Operator email: street line should show '-' and the combined PLZ/Ort line too.
-        $body = $this->mails[0]['body'];
-        $this->assertMatchesRegularExpression('/Adresse:\s+-/', $body);
+        $this->assertSame(400, $result['status']);
+        $this->assertSame('validation', $result['body']['error']);
+        $this->assertArrayHasKey('address_street', $result['body']['fields']);
+        $this->assertArrayHasKey('address_postal', $result['body']['fields']);
+        $this->assertArrayHasKey('address_city',   $result['body']['fields']);
+        $this->assertSame(0, (int)db()->query('SELECT COUNT(*) FROM angebot_requests')->fetchColumn());
+        $this->assertCount(0, $this->mails);
     }
 }

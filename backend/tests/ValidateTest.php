@@ -144,6 +144,36 @@ class ValidateTest extends TestCase
         $this->assertNotEmpty($errors['address_city'] ?? null);
     }
 
+    public function testAngebotRequiresAddressStreet(): void
+    {
+        $errors = validate_angebot([
+            'name'=>'M','phone'=>'1','email'=>'a@b.de',
+            'components'=>['Photovoltaik'],'privacy'=>'1',
+            'address_postal'=>'19348','address_city'=>'Sükow',
+        ]);
+        $this->assertSame('Bitte geben Sie Strasse und Hausnummer an.', $errors['address_street'] ?? null);
+    }
+
+    public function testAngebotRequiresAddressPostal(): void
+    {
+        $errors = validate_angebot([
+            'name'=>'M','phone'=>'1','email'=>'a@b.de',
+            'components'=>['Photovoltaik'],'privacy'=>'1',
+            'address_street'=>'Hauptstr. 1','address_city'=>'Sükow',
+        ]);
+        $this->assertSame('Bitte geben Sie eine PLZ an.', $errors['address_postal'] ?? null);
+    }
+
+    public function testAngebotRequiresAddressCity(): void
+    {
+        $errors = validate_angebot([
+            'name'=>'M','phone'=>'1','email'=>'a@b.de',
+            'components'=>['Photovoltaik'],'privacy'=>'1',
+            'address_street'=>'Hauptstr. 1','address_postal'=>'19348',
+        ]);
+        $this->assertSame('Bitte geben Sie einen Ort an.', $errors['address_city'] ?? null);
+    }
+
     public function testAddressFieldsAtLimitAreAccepted(): void
     {
         $errors = validate_angebot([

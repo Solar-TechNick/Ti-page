@@ -1055,6 +1055,12 @@ textarea:focus {
   font-weight: 600;
 }
 
+.req-mark {
+  margin-left: 2px;
+  color: var(--amber);
+  font-weight: 900;
+}
+
 .offer-actions {
   display: flex;
   justify-content: space-between;

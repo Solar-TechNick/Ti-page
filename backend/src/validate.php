@@ -66,6 +66,21 @@ function validate_angebot(array $in): array
         $errors['privacy'] = 'Bitte bestätigen Sie die Datenschutzerklärung.';
     }
 
+    $street = _str($in, 'address_street', 200);
+    if ($street === null) {
+        $errors['address_street'] = 'Bitte geben Sie Strasse und Hausnummer an.';
+    }
+
+    $postal = _str($in, 'address_postal', 20);
+    if ($postal === null) {
+        $errors['address_postal'] = 'Bitte geben Sie eine PLZ an.';
+    }
+
+    $city = _str($in, 'address_city', 100);
+    if ($city === null) {
+        $errors['address_city'] = 'Bitte geben Sie einen Ort an.';
+    }
+
     foreach ([
         'building'      => 200,
         'location'      => 200,
