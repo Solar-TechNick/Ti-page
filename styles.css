@@ -568,10 +568,61 @@ textarea {
 
 .job-card {
   display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 28px;
+}
+
+.job-card-header {
+  display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 24px;
-  padding: 28px;
+}
+
+.job-details {
+  margin-top: 20px;
+  border-top: 1px solid var(--line);
+  padding-top: 16px;
+}
+
+.job-details > summary {
+  cursor: pointer;
+  padding: 6px 0;
+  color: var(--blue);
+  font-weight: 900;
+  list-style: none;
+}
+
+.job-details > summary::-webkit-details-marker {
+  display: none;
+}
+
+.job-details > summary::after {
+  content: " ▾";
+}
+
+.job-details[open] > summary::after {
+  content: " ▴";
+}
+
+.job-details-content {
+  padding-top: 8px;
+}
+
+.job-details-content h4 {
+  margin: 20px 0 8px;
+  font-size: 1.05rem;
+  font-weight: 900;
+}
+
+.job-details-content ul {
+  margin: 0 0 8px;
+  padding-left: 1.25rem;
+}
+
+.job-details-content li {
+  margin-bottom: 4px;
 }
 
 .job-location {
@@ -1145,7 +1196,7 @@ textarea:focus {
     min-height: 360px;
   }
 
-  .job-card {
+  .job-card-header {
     align-items: flex-start;
     flex-direction: column;
   }
