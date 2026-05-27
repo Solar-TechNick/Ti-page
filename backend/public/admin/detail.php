@@ -52,7 +52,17 @@ $msg = $_GET['msg'] ?? null;
           <dt>E-Mail</dt><dd><a href="mailto:<?= htmlspecialchars($row['email']) ?>"><?= htmlspecialchars($row['email']) ?></a></dd>
           <dt>Komponenten</dt><dd><?= htmlspecialchars($row['components']) ?></dd>
           <dt>Objekt</dt><dd><?= htmlspecialchars($row['building'] ?? '—') ?></dd>
-          <dt>Standort/PLZ</dt><dd><?= htmlspecialchars($row['location'] ?? '—') ?></dd>
+          <dt>Adresse</dt>
+          <dd>
+            <?php
+              $cityLine = trim(($row['address_postal'] ?? '') . ' ' . ($row['address_city'] ?? ''));
+              $parts = array_filter([
+                $row['address_street'] ?? null,
+                $cityLine,
+              ], fn($p) => $p !== null && $p !== '');
+              echo $parts ? htmlspecialchars(implode(', ', $parts)) : '—';
+            ?>
+          </dd>
           <dt>Dachform</dt><dd><?= htmlspecialchars($row['roof'] ?? '—') ?></dd>
           <dt>Nutzung</dt><dd><?= htmlspecialchars($row['usage_profile'] ?? '—') ?></dd>
           <dt>Verbrauch</dt><dd><?= htmlspecialchars($row['consumption'] ?? '—') ?></dd>
