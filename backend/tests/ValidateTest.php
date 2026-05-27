@@ -113,4 +113,46 @@ class ValidateTest extends TestCase
         $errors = validate_angebot($this->baseValidAngebot() + ['voucher_code' => str_repeat('a', 51)]);
         $this->assertSame('Gutscheincode darf höchstens 50 Zeichen lang sein.', $errors['voucher_code'] ?? null);
     }
+
+    public function testAddressStreetLengthLimit(): void
+    {
+        $errors = validate_angebot([
+            'name'=>'M','phone'=>'1','email'=>'a@b.de',
+            'components'=>['Photovoltaik'],'privacy'=>'1',
+            'address_street'=>str_repeat('a', 201),
+        ]);
+        $this->assertNotEmpty($errors['address_street'] ?? null);
+    }
+
+    public function testAddressPostalLengthLimit(): void
+    {
+        $errors = validate_angebot([
+            'name'=>'M','phone'=>'1','email'=>'a@b.de',
+            'components'=>['Photovoltaik'],'privacy'=>'1',
+            'address_postal'=>str_repeat('1', 21),
+        ]);
+        $this->assertNotEmpty($errors['address_postal'] ?? null);
+    }
+
+    public function testAddressCityLengthLimit(): void
+    {
+        $errors = validate_angebot([
+            'name'=>'M','phone'=>'1','email'=>'a@b.de',
+            'components'=>['Photovoltaik'],'privacy'=>'1',
+            'address_city'=>str_repeat('a', 101),
+        ]);
+        $this->assertNotEmpty($errors['address_city'] ?? null);
+    }
+
+    public function testAddressFieldsAtLimitAreAccepted(): void
+    {
+        $errors = validate_angebot([
+            'name'=>'M','phone'=>'1','email'=>'a@b.de',
+            'components'=>['Photovoltaik'],'privacy'=>'1',
+            'address_street'=>str_repeat('a', 200),
+            'address_postal'=>str_repeat('1', 20),
+            'address_city'=>str_repeat('a', 100),
+        ]);
+        $this->assertSame([], $errors);
+    }
 }

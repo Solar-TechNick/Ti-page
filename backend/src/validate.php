@@ -66,7 +66,17 @@ function validate_angebot(array $in): array
         $errors['privacy'] = 'Bitte bestätigen Sie die Datenschutzerklärung.';
     }
 
-    foreach (['building'=>100,'location'=>200,'roof'=>100,'usage'=>100,'consumption'=>100,'timeline'=>100] as $k => $max) {
+    foreach ([
+        'building'      => 100,
+        'location'      => 200,
+        'address_street'=> 200,
+        'address_postal'=> 20,
+        'address_city'  => 100,
+        'roof'          => 100,
+        'usage'         => 100,
+        'consumption'   => 100,
+        'timeline'      => 100,
+    ] as $k => $max) {
         if (isset($in[$k]) && mb_strlen((string)$in[$k]) > $max) {
             $errors[$k] = ucfirst($k) . " darf höchstens {$max} Zeichen lang sein.";
         }
