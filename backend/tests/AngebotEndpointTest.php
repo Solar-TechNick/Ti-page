@@ -211,6 +211,23 @@ class AngebotEndpointTest extends TestCase
         $this->assertStringContainsString('Quitzower Damm 15, 19348 Sükow', $this->mails[1]['body']);
     }
 
+    public function testMultiSelectBuildingIsStoredAsCommaSeparated(): void
+    {
+        $result = angebot_handle([
+            'name'=>'Multi','phone'=>'1','email'=>'m@b.de',
+            'components'=>['Photovoltaik'],'privacy'=>'1',
+            'building'=>['Einfamilienhaus', 'Carport / Garage', 'Freiland'],
+        ], [], pack_ip('192.0.2.80'), 'UA');
+
+        $this->assertSame(200, $result['status']);
+        $row = db()->query('SELECT building FROM angebot_requests')->fetch();
+        $this->assertSame('Einfamilienhaus, Carport / Garage, Freiland', $row['building']);
+        $this->assertStringContainsString(
+            'Objekt:       Einfamilienhaus, Carport / Garage, Freiland',
+            $this->mails[0]['body']
+        );
+    }
+
     public function testEmailAddressFallsBackToDashWhenAllFieldsEmpty(): void
     {
         angebot_handle([

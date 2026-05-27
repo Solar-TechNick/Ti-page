@@ -118,3 +118,13 @@ SET @sql := IF(@col = 0,
   'ALTER TABLE angebot_requests ADD COLUMN address_city VARCHAR(100) NULL AFTER address_postal',
   'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- Idempotent widen of building column on angebot_requests (multi-select stores comma-separated)
+SET @len := (SELECT CHARACTER_MAXIMUM_LENGTH FROM information_schema.columns
+             WHERE table_schema = DATABASE()
+               AND table_name = 'angebot_requests'
+               AND column_name = 'building');
+SET @sql := IF(@len IS NOT NULL AND @len < 200,
+  'ALTER TABLE angebot_requests MODIFY COLUMN building VARCHAR(200) NULL',
+  'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;

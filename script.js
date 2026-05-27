@@ -143,6 +143,10 @@ if (offerForm) {
         setStepError("Bitte wählen Sie mindestens eine Komponente aus.");
         return false;
       }
+      if (name === "building" && !boxes.some(b => b.checked)) {
+        setStepError("Bitte wählen Sie mindestens einen Objekttyp aus.");
+        return false;
+      }
     }
     const radioNames = new Set(
       Array.from(step.querySelectorAll('input[type="radio"]')).map(i => i.name)
@@ -219,6 +223,7 @@ if (offerForm) {
     for (const [k, v] of native.entries()) {
       if (k === "files") continue;          // we re-add below
       if (k === "components") fd.append("components[]", v);
+      else if (k === "building") fd.append("building[]", v);
       else fd.append(k, v);
     }
     if (selectedFiles.length > 0) fd.append("photos_followup", "1");

@@ -67,7 +67,7 @@ function validate_angebot(array $in): array
     }
 
     foreach ([
-        'building'      => 100,
+        'building'      => 200,
         'location'      => 200,
         'address_street'=> 200,
         'address_postal'=> 20,

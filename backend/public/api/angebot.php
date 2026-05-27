@@ -13,6 +13,13 @@ function angebot_handle(array $input, array $filesSuperglobal, ?string $packed_i
         return ['status' => 429, 'body' => rate_limit_error()];
     }
 
+    if (isset($input['building']) && is_array($input['building'])) {
+        $input['building'] = implode(', ', array_map(
+            fn($v) => trim((string)$v),
+            $input['building']
+        ));
+    }
+
     $errors = validate_angebot($input);
     if ($errors) {
         return ['status' => 400, 'body' => validation_error($errors)];
@@ -188,6 +195,9 @@ if (PHP_SAPI !== 'cli' && !defined('TI_TEST')) {
     $input = $_POST;
     if (isset($input['components']) && !is_array($input['components'])) {
         $input['components'] = [$input['components']];
+    }
+    if (isset($input['building']) && !is_array($input['building'])) {
+        $input['building'] = [$input['building']];
     }
 
     $result = angebot_handle($input, $_FILES, pack_ip(client_ip()),

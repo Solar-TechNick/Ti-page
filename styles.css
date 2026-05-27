@@ -1048,6 +1048,13 @@ textarea:focus {
   font-weight: 850;
 }
 
+.step-hint {
+  margin: -10px 0 16px;
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
 .offer-actions {
   display: flex;
   justify-content: space-between;
