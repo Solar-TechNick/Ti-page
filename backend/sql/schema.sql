@@ -88,3 +88,33 @@ SET @sql := IF(@col = 0,
   'ALTER TABLE angebot_requests ADD COLUMN voucher_code VARCHAR(50) NULL AFTER details',
   'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- Idempotent add of address_street column on angebot_requests
+SET @col := (SELECT COUNT(*) FROM information_schema.columns
+             WHERE table_schema = DATABASE()
+               AND table_name = 'angebot_requests'
+               AND column_name = 'address_street');
+SET @sql := IF(@col = 0,
+  'ALTER TABLE angebot_requests ADD COLUMN address_street VARCHAR(200) NULL AFTER location',
+  'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- Idempotent add of address_postal column on angebot_requests
+SET @col := (SELECT COUNT(*) FROM information_schema.columns
+             WHERE table_schema = DATABASE()
+               AND table_name = 'angebot_requests'
+               AND column_name = 'address_postal');
+SET @sql := IF(@col = 0,
+  'ALTER TABLE angebot_requests ADD COLUMN address_postal VARCHAR(20) NULL AFTER address_street',
+  'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- Idempotent add of address_city column on angebot_requests
+SET @col := (SELECT COUNT(*) FROM information_schema.columns
+             WHERE table_schema = DATABASE()
+               AND table_name = 'angebot_requests'
+               AND column_name = 'address_city');
+SET @sql := IF(@col = 0,
+  'ALTER TABLE angebot_requests ADD COLUMN address_city VARCHAR(100) NULL AFTER address_postal',
+  'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
