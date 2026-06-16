@@ -2,7 +2,7 @@
 
 **Date:** 2026-06-16
 **Site:** Technik- und Instandsetzungs GmbH (static HTML)
-**Domain:** https://www.technik-prignitz.de
+**Domain:** https://technik-prignitz.de
 
 ## Goal
 
@@ -34,7 +34,7 @@ Add to `index.html` (`<head>` or end of `<body>`):
   - `telephone`: "+49 3876 612474"
   - `faxNumber`: "+49 3876 612838"
   - `email`: "info@technik-prignitz.de"
-  - `url`: "https://www.technik-prignitz.de"
+  - `url`: "https://technik-prignitz.de"
   - `image` / `logo`: absolute URL to `assets/logo.png`
   - `areaServed`: "Prignitz"
   - `vatID`: "DE138975594"
@@ -59,17 +59,17 @@ intent.
 
 ### 3. Crawl & indexing files (new, at repo root)
 
-- **`robots.txt`**: allow all crawlers; `Sitemap: https://www.technik-prignitz.de/sitemap.xml`.
+- **`robots.txt`**: allow all crawlers; `Sitemap: https://technik-prignitz.de/sitemap.xml`.
 - **`sitemap.xml`**: lists the two indexable URLs —
-  `https://www.technik-prignitz.de/` and
-  `https://www.technik-prignitz.de/angebot/`.
+  `https://technik-prignitz.de/` and
+  `https://technik-prignitz.de/angebot/`.
   Impressum & Datenschutz excluded (already `noindex`).
 
 ### 4. Canonical + favicon
 
 - `<link rel="canonical">` on `index.html`
-  (`https://www.technik-prignitz.de/`) and `angebot/index.html`
-  (`https://www.technik-prignitz.de/angebot/`).
+  (`https://technik-prignitz.de/`) and `angebot/index.html`
+  (`https://technik-prignitz.de/angebot/`).
 - `<link rel="icon">` + `apple-touch-icon` pointing at `assets/logo.png`, and a
   `<meta name="theme-color">` on all four HTML pages (or at minimum index +
   angebot).

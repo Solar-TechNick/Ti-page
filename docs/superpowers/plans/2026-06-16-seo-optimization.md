@@ -8,7 +8,7 @@
 
 **Tech Stack:** Static HTML5, schema.org JSON-LD, Open Graph protocol, `python3` (for JSON/XML validation only).
 
-**Conventions to match:** The codebase uses raw `&` (not `&amp;`) in text/titles, 2-space indentation, and absolute URLs under `https://www.technik-prignitz.de`. The share image is `assets/DSC01106.jpeg`; the icon is `assets/logo.png`; the `theme-color` is the brand `--green-dark: #084a3c`.
+**Conventions to match:** The codebase uses raw `&` (not `&amp;`) in text/titles, 2-space indentation, and absolute URLs under `https://technik-prignitz.de`. The share image is `assets/DSC01106.jpeg`; the icon is `assets/logo.png`; the `theme-color` is the brand `--green-dark: #084a3c`.
 
 ---
 
@@ -25,7 +25,7 @@ Create `robots.txt` with exactly:
 User-agent: *
 Allow: /
 
-Sitemap: https://www.technik-prignitz.de/sitemap.xml
+Sitemap: https://technik-prignitz.de/sitemap.xml
 ```
 
 - [ ] **Step 2: Verify contents**
@@ -57,12 +57,12 @@ Create `sitemap.xml` with exactly:
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://www.technik-prignitz.de/</loc>
+    <loc>https://technik-prignitz.de/</loc>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://www.technik-prignitz.de/angebot/</loc>
+    <loc>https://technik-prignitz.de/angebot/</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -107,7 +107,7 @@ Insert the following BETWEEN the closing `>` of the description meta and the `pr
       name="description"
       content="Technik- & Instandsetzungs GmbH aus Sükow: Elektrotechnik, Photovoltaik, Speicher, Wärmepumpen, Schaltschrankbau, Metallbau und Smarthome."
     >
-    <link rel="canonical" href="https://www.technik-prignitz.de/">
+    <link rel="canonical" href="https://technik-prignitz.de/">
     <link rel="icon" href="assets/logo.png">
     <link rel="apple-touch-icon" href="assets/logo.png">
     <meta name="theme-color" content="#084a3c">
@@ -116,12 +116,12 @@ Insert the following BETWEEN the closing `>` of the description meta and the `pr
     <meta property="og:locale" content="de_DE">
     <meta property="og:title" content="Technik- & Instandsetzungs GmbH | Elektrotechnik in der Prignitz">
     <meta property="og:description" content="Technik- & Instandsetzungs GmbH aus Sükow: Elektrotechnik, Photovoltaik, Speicher, Wärmepumpen, Schaltschrankbau, Metallbau und Smarthome.">
-    <meta property="og:url" content="https://www.technik-prignitz.de/">
-    <meta property="og:image" content="https://www.technik-prignitz.de/assets/DSC01106.jpeg">
+    <meta property="og:url" content="https://technik-prignitz.de/">
+    <meta property="og:image" content="https://technik-prignitz.de/assets/DSC01106.jpeg">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="Technik- & Instandsetzungs GmbH | Elektrotechnik in der Prignitz">
     <meta name="twitter:description" content="Technik- & Instandsetzungs GmbH aus Sükow: Elektrotechnik, Photovoltaik, Speicher, Wärmepumpen, Schaltschrankbau, Metallbau und Smarthome.">
-    <meta name="twitter:image" content="https://www.technik-prignitz.de/assets/DSC01106.jpeg">
+    <meta name="twitter:image" content="https://technik-prignitz.de/assets/DSC01106.jpeg">
     <link rel="preconnect" href="https://images.unsplash.com">
 ```
 
@@ -131,7 +131,7 @@ Run: `grep -c -E "og:|twitter:|rel=\"canonical\"|theme-color" index.html`
 Expected: `13` (12 og/twitter tags + 1 canonical; grep counts lines — confirm it is at least 12).
 
 Run: `grep -o 'rel="canonical" href="[^"]*"' index.html`
-Expected: `rel="canonical" href="https://www.technik-prignitz.de/"`
+Expected: `rel="canonical" href="https://technik-prignitz.de/"`
 
 - [ ] **Step 3: Commit**
 
@@ -166,9 +166,9 @@ Insert the two `<script>` blocks BETWEEN `</footer>` and `</body>`:
       "@context": "https://schema.org",
       "@type": "Electrician",
       "name": "Technik- und Instandsetzungs GmbH",
-      "image": "https://www.technik-prignitz.de/assets/logo.png",
-      "logo": "https://www.technik-prignitz.de/assets/logo.png",
-      "url": "https://www.technik-prignitz.de/",
+      "image": "https://technik-prignitz.de/assets/logo.png",
+      "logo": "https://technik-prignitz.de/assets/logo.png",
+      "url": "https://technik-prignitz.de/",
       "telephone": "+49 3876 612474",
       "faxNumber": "+49 3876 612838",
       "email": "info@technik-prignitz.de",
@@ -358,7 +358,7 @@ Insert BETWEEN the description meta and the `preconnect` link so the result is:
       name="description"
       content="Kostenlose Angebotsanfrage für Photovoltaik, Speicher, Wärmepumpe, Wallbox und Elektrotechnik bei Technik- & Instandsetzungs GmbH."
     >
-    <link rel="canonical" href="https://www.technik-prignitz.de/angebot/">
+    <link rel="canonical" href="https://technik-prignitz.de/angebot/">
     <link rel="icon" href="../assets/logo.png">
     <link rel="apple-touch-icon" href="../assets/logo.png">
     <meta name="theme-color" content="#084a3c">
@@ -367,19 +367,19 @@ Insert BETWEEN the description meta and the `preconnect` link so the result is:
     <meta property="og:locale" content="de_DE">
     <meta property="og:title" content="Angebot anfragen | Technik- & Instandsetzungs GmbH">
     <meta property="og:description" content="Kostenlose Angebotsanfrage für Photovoltaik, Speicher, Wärmepumpe, Wallbox und Elektrotechnik bei Technik- & Instandsetzungs GmbH.">
-    <meta property="og:url" content="https://www.technik-prignitz.de/angebot/">
-    <meta property="og:image" content="https://www.technik-prignitz.de/assets/DSC01106.jpeg">
+    <meta property="og:url" content="https://technik-prignitz.de/angebot/">
+    <meta property="og:image" content="https://technik-prignitz.de/assets/DSC01106.jpeg">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="Angebot anfragen | Technik- & Instandsetzungs GmbH">
     <meta name="twitter:description" content="Kostenlose Angebotsanfrage für Photovoltaik, Speicher, Wärmepumpe, Wallbox und Elektrotechnik bei Technik- & Instandsetzungs GmbH.">
-    <meta name="twitter:image" content="https://www.technik-prignitz.de/assets/DSC01106.jpeg">
+    <meta name="twitter:image" content="https://technik-prignitz.de/assets/DSC01106.jpeg">
     <link rel="preconnect" href="https://images.unsplash.com">
 ```
 
 - [ ] **Step 2: Verify the tags are present**
 
 Run: `grep -o 'rel="canonical" href="[^"]*"' angebot/index.html`
-Expected: `rel="canonical" href="https://www.technik-prignitz.de/angebot/"`
+Expected: `rel="canonical" href="https://technik-prignitz.de/angebot/"`
 
 Run: `grep -c -E "og:|twitter:" angebot/index.html`
 Expected: at least `12`.
@@ -480,8 +480,8 @@ Expected: `JSON-LD OK`
 - [ ] **Step 3: Manual external checks (record results, no code)**
 
 After deploy, the engineer should confirm (these need the live URL and are documented for completeness):
-- Google Rich Results Test on `https://www.technik-prignitz.de/` detects **LocalBusiness** and **FAQPage** with no errors.
-- `https://www.technik-prignitz.de/robots.txt` and `/sitemap.xml` load.
+- Google Rich Results Test on `https://technik-prignitz.de/` detects **LocalBusiness** and **FAQPage** with no errors.
+- `https://technik-prignitz.de/robots.txt` and `/sitemap.xml` load.
 - A link-preview debugger (e.g. opengraph.xyz) shows the title, description, and `DSC01106.jpeg` image for both `/` and `/angebot/`.
 
 - [ ] **Step 4: Confirm clean working tree**
