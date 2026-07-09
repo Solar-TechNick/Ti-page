@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#163d64">
+<title>Lead-Aufnahmebogen · Technik- &amp; Instandsetzungs GmbH</title>
+<link rel="manifest" href="assets/lead/manifest.json">
+<link rel="apple-touch-icon" href="assets/lead/icon-512.png">
+<script defer src="assets/lead/html2pdf.bundle.min.js"></script>
+<style>
+/* ---- Fonts (vendored, no CDN) ---- */
+@font-face{font-family:'DM Sans';font-weight:400;font-display:swap;src:url('assets/lead/dm-sans-400.woff2') format('woff2')}
+@font-face{font-family:'DM Sans';font-weight:500;font-display:swap;src:url('assets/lead/dm-sans-500.woff2') format('woff2')}
+@font-face{font-family:'DM Sans';font-weight:600;font-display:swap;src:url('assets/lead/dm-sans-600.woff2') format('woff2')}
+@font-face{font-family:'DM Sans';font-weight:700;font-display:swap;src:url('assets/lead/dm-sans-700.woff2') format('woff2')}
+@font-face{font-family:'DM Sans';font-weight:800;font-display:swap;src:url('assets/lead/dm-sans-800.woff2') format('woff2')}
+
+/* ---- Design tokens ---- */
+:root{
+  --brand:#1f5f9e; --brand-2:#2264a8; --brand-dark:#163d64; --brand-light:#e8f1fa;
+  --green:#1e8449; --green-light:#e8f8ef; --amber:#c77700; --red:#c0392b;
+  --bg:#eef2f7; --card:#ffffff; --border:#cfd8e3; --text:#1e2a37; --muted:#5a6b7b;
+  --radius:14px; --radius-sm:9px; --shadow:0 1px 3px rgba(20,40,70,.08),0 6px 20px rgba(20,40,70,.05);
+  --tap:44px;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{-webkit-text-size-adjust:100%}
+body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.5;font-size:16px}
+button{font-family:inherit}
+
+/* ---- Header ---- */
+.hdr{position:sticky;top:0;z-index:50;background:linear-gradient(135deg,var(--brand-dark),var(--brand-2));
+  color:#fff;padding:10px 14px;padding-top:calc(10px + env(safe-area-inset-top));
+  display:flex;align-items:center;gap:10px;box-shadow:0 2px 14px rgba(0,0,0,.18)}
+.hdr .brand{width:34px;height:34px;border-radius:8px;object-fit:contain;background:#fff;padding:3px;flex:none}
+.hdr .titles{flex:1;min-width:0}
+.hdr h1{font-size:16px;font-weight:800;letter-spacing:.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hdr .sub{font-size:11px;opacity:.8}
+.hdr .saved{font-size:11px;opacity:.9;white-space:nowrap}
+
+/* ---- Layout ---- */
+.layout{max-width:1080px;margin:14px auto 96px;padding:0 12px;display:flex;gap:16px;align-items:flex-start}
+.sidebar{position:sticky;top:70px;width:210px;min-width:210px;background:var(--card);border-radius:var(--radius);
+  box-shadow:var(--shadow);padding:12px 0;align-self:flex-start}
+.sidebar .label{padding:0 14px 8px;font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:1.2px}
+.sidebar button{display:flex;align-items:center;gap:8px;width:100%;text-align:left;padding:8px 12px;border:none;
+  cursor:pointer;font-size:13px;color:#425364;background:transparent;border-left:3px solid transparent}
+.sidebar button:hover{background:#f4f8fc}
+.sidebar button.active{font-weight:700;color:var(--brand);background:var(--brand-light);border-left-color:var(--brand)}
+.sidebar button.dim{opacity:.45}
+.sidebar .badge{margin-left:auto;font-size:10px;font-weight:700;color:var(--muted)}
+.main{flex:1;min-width:0}
+
+/* mobile section jumper (hidden on desktop) */
+.jumper{display:none;position:sticky;top:64px;z-index:40;margin:0 0 12px;padding-top:12px;background:var(--bg)}
+.jumper select{width:100%;padding:11px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);
+  font-size:15px;background:var(--card);font-family:inherit;color:var(--text)}
+.showall-row{margin-top:8px}
+.showall-row button{width:100%;padding:9px;border:1.5px dashed var(--border);border-radius:var(--radius-sm);
+  background:var(--card);color:var(--brand);font-weight:600;font-size:13px;cursor:pointer}
+
+/* progress */
+.progress-wrap{margin:12px 14px 4px}
+.progress-bar{background:#e3e9f0;border-radius:5px;height:7px;overflow:hidden}
+.progress-fill{height:100%;border-radius:5px;transition:width .35s,background .35s}
+.progress-text{font-size:10px;color:var(--muted);margin-top:4px}
+
+/* ---- Section cards (collapsible) ---- */
+.card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:12px;overflow:hidden}
+.card.hidden{display:none}
+.sec-head{width:100%;display:flex;align-items:center;gap:10px;padding:14px 16px;border:none;background:transparent;
+  cursor:pointer;text-align:left;min-height:var(--tap)}
+.sec-head .ic{font-size:18px;flex:none}
+.sec-head .t{font-weight:700;font-size:15px;color:var(--brand-dark);flex:1;min-width:0}
+.sec-head .badge{font-size:11px;font-weight:700;color:var(--muted);background:#eef2f7;border-radius:20px;padding:2px 9px}
+.sec-head .badge.done{color:var(--green);background:var(--green-light)}
+.sec-head .chev{transition:transform .2s;color:var(--muted);flex:none}
+.card.open .sec-head .chev{transform:rotate(180deg)}
+.sec-body{padding:0 16px 14px;display:none}
+.card.open .sec-body{display:block}
+.sub-header{color:var(--brand);font-weight:700;font-size:13px;border-bottom:2px solid var(--brand-light);
+  padding-bottom:4px;margin:16px 0 10px;text-transform:uppercase;letter-spacing:.4px}
+
+/* ---- Fields ---- */
+.row{display:flex;gap:12px;flex-wrap:wrap}
+.field{flex:1 1 45%;min-width:150px;margin-bottom:12px}
+.field.full{flex:1 1 100%}
+.field label{display:block;font-size:12px;font-weight:600;color:#41505f;margin-bottom:4px}
+.field input,.field textarea,.field select{width:100%;padding:11px 12px;border:1.5px solid var(--border);
+  border-radius:var(--radius-sm);font-size:16px;background:#fbfcfe;outline:none;font-family:inherit;color:var(--text);
+  transition:border-color .15s,box-shadow .15s}
+.field input:focus,.field textarea:focus,.field select:focus{border-color:var(--brand);box-shadow:0 0 0 3px rgba(31,95,158,.14)}
+.field textarea{resize:vertical;min-height:110px}
+
+/* option chips */
+.optgroup{margin-bottom:14px}
+.optgroup > .lbl{display:block;font-size:12px;font-weight:600;color:#41505f;margin-bottom:6px}
+.opts{display:flex;flex-wrap:wrap;gap:8px}
+.opt{display:inline-flex;align-items:center;gap:7px;min-height:var(--tap);padding:8px 14px;border-radius:22px;
+  border:1.5px solid var(--border);background:#fbfcfe;cursor:pointer;font-size:14px;color:var(--text);user-select:none}
+.opt.check{border-radius:10px}
+.opt.sel{border:2px solid var(--brand);background:var(--brand-light);font-weight:600;color:var(--brand-dark)}
+.opt .mk{width:16px;height:16px;border-radius:50%;border:2px solid #aeb9c6;display:inline-flex;align-items:center;justify-content:center;flex:none}
+.opt.check .mk{border-radius:4px}
+.opt.sel .mk{border-color:var(--brand);background:var(--brand)}
+.opt .mk svg{display:none}
+.opt.sel .mk svg{display:block}
+
+/* roofs */
+.roof{border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:12px;margin-bottom:10px;background:#fbfcfe}
+.roof-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.roof-head .rt{font-weight:700;font-size:13px;color:var(--brand-dark)}
+.icon-btn{border:none;background:transparent;cursor:pointer;color:var(--red);font-size:14px;
+  min-height:var(--tap);min-width:var(--tap);border-radius:8px}
+.icon-btn:hover{background:#fbeceb}
+.add-btn{display:inline-flex;align-items:center;gap:6px;padding:10px 16px;border:1.5px dashed var(--brand);
+  border-radius:var(--radius-sm);background:var(--brand-light);color:var(--brand);font-weight:700;font-size:14px;cursor:pointer}
+
+/* photos */
+.photo-tools{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 12px}
+.photo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px}
+.pcard{border:1.5px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;background:#fbfcfe;display:flex;flex-direction:column}
+.pcard .thumb{width:100%;aspect-ratio:4/3;object-fit:cover;background:#e9eef4;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:26px}
+.pcard .meta{padding:6px 8px;font-size:11px}
+.pcard .nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#41505f}
+.pcard select{width:100%;margin-top:4px;font-size:11px;padding:4px;border:1px solid var(--border);border-radius:6px;font-family:inherit}
+.pcard .rm{align-self:flex-end;color:var(--red);border:none;background:transparent;cursor:pointer;font-size:11px;padding:4px 6px}
+
+/* signatures */
+.sig-row{display:flex;gap:24px;flex-wrap:wrap;margin-top:12px}
+.sig-field{flex:1 1 40%;min-width:180px}
+.sig-field input{width:100%;padding:12px 4px;border:none;border-bottom:2px solid #33414f;font-size:17px;
+  font-style:italic;background:transparent;outline:none;font-family:inherit}
+.sig-field .cap{font-size:11px;color:var(--muted);margin-top:4px}
+.consent{font-size:12px;color:var(--muted);line-height:1.7;margin-top:8px}
+
+/* ---- Bottom action bar ---- */
+.actionbar{position:fixed;left:0;right:0;bottom:0;z-index:60;background:rgba(255,255,255,.96);
+  backdrop-filter:blur(6px);border-top:1px solid var(--border);display:flex;gap:8px;
+  padding:10px 12px;padding-bottom:calc(10px + env(safe-area-inset-bottom))}
+.btn{flex:1 1 auto;min-height:var(--tap);border:none;border-radius:var(--radius-sm);cursor:pointer;
+  font-size:14px;font-weight:700;color:#fff;padding:10px 12px;display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.btn.save{background:linear-gradient(135deg,#1e8449,#27ae60)}
+.btn.send{background:linear-gradient(135deg,#1f5f9e,#2264a8)}
+.btn.more{flex:0 0 auto;background:#eef2f7;color:var(--brand-dark)}
+.btn.sent{background:linear-gradient(135deg,#0f6b39,#1e8449)}
+.btn.unsent{background:linear-gradient(135deg,#a15a00,#c77700)}
+
+/* toast + modal */
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:84px;z-index:9999;padding:12px 20px;border-radius:12px;
+  color:#fff;font-size:14px;font-weight:600;box-shadow:0 6px 24px rgba(0,0,0,.25);display:none;max-width:90%}
+.modal-bg{position:fixed;inset:0;background:rgba(15,25,40,.55);z-index:1000;display:flex;align-items:flex-end;justify-content:center}
+.modal{background:#fff;border-radius:16px 16px 0 0;padding:20px;width:100%;max-width:560px;max-height:80vh;overflow:auto;
+  box-shadow:0 -10px 40px rgba(0,0,0,.3)}
+.modal h3{margin-bottom:12px;color:var(--brand-dark);font-size:17px}
+.modal-item{padding:12px;border-radius:10px;margin-bottom:8px;border:1.5px solid var(--border);cursor:pointer;background:#fbfcfe}
+.modal-item:hover{background:var(--brand-light)}
+.modal-item .name{font-weight:700;font-size:14px}
+.modal-item .info{font-size:11px;color:var(--muted);margin-top:2px}
+.modal .close{width:100%;margin-top:6px;min-height:var(--tap);border:1.5px solid var(--border);border-radius:var(--radius-sm);
+  background:#fff;color:#41505f;font-weight:600;cursor:pointer}
+.menu-item{width:100%;text-align:left;padding:12px;border:none;border-bottom:1px solid #eef2f7;background:#fff;font-size:15px;cursor:pointer;display:flex;gap:10px;align-items:center}
+
+/* ---- Responsive ---- */
+@media (max-width:860px){
+  .sidebar{display:none}
+  .layout{flex-direction:column;margin-top:0;padding:0 10px}
+  .jumper{display:block}
+  .field{flex:1 1 100%}
+}
+
+/* ---- Print / PDF document (built off-screen) ---- */
+#pdf-doc{display:none}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div class="toast" id="toast"></div>
+<div id="modal"></div>
+<div id="pdf-mount"></div>
+
+<script>
+"use strict";
+const API_BASE = "https://api.technik-prignitz.de";
+
+/* ============ MODULES (filled in across tasks) ============ */
+// Schema (Task 3) · State (Task 3) · Storage (Task 3, 9) · Image (Task 9)
+// Render (Task 3-8) · Actions (Task 10) · PDF (Task 11) · Backend (Task 12)
+
+function esc(s){const d=document.createElement('div');d.textContent=(s==null?'':String(s));return d.innerHTML;}
+
+function boot(){
+  document.getElementById('app').innerHTML =
+    '<div class="hdr">'
+    + '<img class="brand" src="assets/lead/icon-512.png" alt="">'
+    + '<div class="titles"><h1>Lead-Aufnahmebogen</h1>'
+    + '<div class="sub">Technik- &amp; Instandsetzungs GmbH · PV · WP · Speicher · Wallbox</div></div>'
+    + '<div class="saved" id="saved-ind"></div>'
+    + '</div>'
+    + '<div class="layout"><div class="main"><p style="padding:24px;color:var(--muted)">…</p></div></div>';
+}
+
+/* service worker */
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(()=>{}));
+}
+
+boot();
+</script>
+</body>
+</html>
