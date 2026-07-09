@@ -338,7 +338,9 @@ function loadList(){ try{ const s=localStorage.getItem(LS_LIST); return s?JSON.p
 /* ---- IndexedDB (photo blobs) ---- */
 const DB_NAME='ti-leads', DB_VER=1, STORE='photos';
 const ALLOWED_MIME=['image/jpeg','image/png','image/heic','image/webp','application/pdf'];
-const MAX_FILE_BYTES=25*1024*1024;
+const MAX_FILE_BYTES=10*1024*1024;
+const MAX_FILE_COUNT=10;
+const MAX_TOTAL_BYTES=50*1024*1024;
 function idb(){ return new Promise((res,rej)=>{ const r=indexedDB.open(DB_NAME,DB_VER);
   r.onupgradeneeded=()=>{ const db=r.result; if(!db.objectStoreNames.contains(STORE)){ const os=db.createObjectStore(STORE,{keyPath:'id'}); os.createIndex('leadId','leadId',{unique:false}); } };
   r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); }); }
@@ -351,19 +353,18 @@ async function photosDeleteByLead(leadId){ const recs=await photosByLead(leadId)
 /* ---- image downscale ---- */
 function _downscale(bitmap,maxEdge,q){ const {width,height}=bitmap; const scale=Math.min(1,maxEdge/Math.max(width,height));
   const w=Math.max(1,Math.round(width*scale)), h=Math.max(1,Math.round(height*scale));
-  const c=document.createElement('canvas'); c.width=w; c.height=h; c.getContext('2d').drawImage(bitmap,0,0,w,h);
+  const c=document.createElement('canvas'); c.width=w; c.height=h;
+  const ctx=c.getContext('2d'); ctx.fillStyle='#fff'; ctx.fillRect(0,0,w,h); ctx.drawImage(bitmap,0,0,w,h);
   return new Promise(res=>c.toBlob(res,'image/jpeg',q)); }
 async function processImage(file){
   if(!file.type.startsWith('image/')) return {blob:file, thumb:null, isImage:false, mime:file.type};
   try{
-    const bmp=await createImageBitmap(file);
+    const bmp=await createImageBitmap(file,{imageOrientation:'from-image'});
     const full=await _downscale(bmp,1600,0.8);
     const thumb=await _downscale(bmp,220,0.7);
     if(bmp.close) bmp.close();
     return {blob:full, thumb, isImage:true, mime:'image/jpeg'};
-  }catch(_){ // HEIC/unsupported decode: keep original
-    return {blob:file, thumb:null, isImage:false, mime:file.type};
-  }
+  }catch(_){ return {blob:file, thumb:null, isImage:false, mime:file.type}; }
 }
 
 /* ============ HELPERS ============ */
@@ -485,10 +486,12 @@ function addRoof(){ state.data.roofs.push({}); saveDraft(); renderRoofs(); }
 function removeRoof(i){ state.data.roofs.splice(i,1); if(!state.data.roofs.length) state.data.roofs.push({}); saveDraft(); renderRoofs(); }
 
 /* ============ RENDER: photos ============ */
+let _thumbUrls = {}; // photo id -> object URL (transient, never persisted)
 function photoCardHTML(p){
   const catOpts=['<option value="">Kategorie…</option>']
     .concat(PHOTO_CATEGORIES.map(c=>'<option'+(p.category===c?' selected':'')+'>'+esc(c)+'</option>')).join('');
-  const thumb = p._thumbUrl ? '<img class="thumb" src="'+p._thumbUrl+'" alt="">' : '<div class="thumb">📄</div>';
+  const url=_thumbUrls[p.id];
+  const thumb = url ? '<img class="thumb" src="'+url+'" alt="">' : '<div class="thumb">📄</div>';
   return '<div class="pcard">'+thumb
     +'<div class="meta"><div class="nm" title="'+esc(p.name)+'">'+esc(p.name)+'</div>'
     +'<select data-act="photo-cat" data-id="'+p.id+'">'+catOpts+'</select>'
@@ -510,32 +513,38 @@ async function paintPhotoGrid(){
   const grid=document.getElementById('photo-grid'); if(!grid) return;
   const recs=await photosByLead(state.leadId);
   const byId={}; recs.forEach(r=>byId[r.id]=r);
-  // revoke old object URLs
-  (state.data.photos||[]).forEach(p=>{ if(p._thumbUrl){ URL.revokeObjectURL(p._thumbUrl); p._thumbUrl=null; } });
-  state.data.photos.forEach(p=>{ const r=byId[p.id]; if(r&&r.thumb) p._thumbUrl=URL.createObjectURL(r.thumb); });
+  Object.values(_thumbUrls).forEach(u=>{ try{ URL.revokeObjectURL(u); }catch(_){} });
+  _thumbUrls={};
+  state.data.photos.forEach(p=>{ const r=byId[p.id]; if(r&&r.thumb) _thumbUrls[p.id]=URL.createObjectURL(r.thumb); });
   grid.innerHTML = state.data.photos.length ? state.data.photos.map(photoCardHTML).join('')
     : '<p style="color:var(--muted);font-size:13px">Noch keine Fotos.</p>';
 }
 async function addPhotos(fileList){
   const files=Array.from(fileList||[]);
+  let count=state.data.photos.length;
+  let total=state.data.photos.reduce((s,p)=>s+(p.size||0),0);
   for(const file of files){
-    if(file.size>MAX_FILE_BYTES){ showToast(file.name+' ist zu groß (max. 25 MB)','error'); continue; }
+    if(count>=MAX_FILE_COUNT){ showToast('Maximal '+MAX_FILE_COUNT+' Dateien','error'); break; }
+    if(file.size>MAX_FILE_BYTES){ showToast(file.name+' ist zu groß (max. 10 MB)','error'); continue; }
     if(!ALLOWED_MIME.includes(file.type) && !file.type.startsWith('image/')){ showToast('Typ nicht erlaubt: '+file.name,'error'); continue; }
     const pid=newLeadId();
     let proc;
     try{ proc=await processImage(file); }
     catch(_){ showToast('Fehler bei '+file.name,'error'); continue; }
+    if(!proc || !proc.blob){ showToast('Fehler bei '+file.name,'error'); continue; }
+    if(total+proc.blob.size>MAX_TOTAL_BYTES){ showToast('Gesamtgröße über '+(MAX_TOTAL_BYTES/1024/1024)+' MB','error'); break; }
     const rec={ id:pid, leadId:state.leadId, category:'', blob:proc.blob, thumb:proc.thumb,
       name:file.name, mime:proc.mime||file.type, size:proc.blob.size, isImage:proc.isImage, createdAt:Date.now() };
     try{ await photoPut(rec); }
     catch(err){ showToast('Speicher voll?','error'); console.error(err); continue; }
     state.data.photos.push({ id:pid, category:'', name:file.name, mime:rec.mime, size:rec.size, isImage:proc.isImage });
+    count++; total+=rec.size;
   }
   saveDraft(); await paintPhotoGrid(); updateProgress();
 }
 async function removePhoto(id){
   await photoDelete(id).catch(()=>{});
-  const p=state.data.photos.find(x=>x.id===id); if(p&&p._thumbUrl) URL.revokeObjectURL(p._thumbUrl);
+  if(_thumbUrls[id]){ try{ URL.revokeObjectURL(_thumbUrls[id]); }catch(_){} delete _thumbUrls[id]; }
   state.data.photos=state.data.photos.filter(x=>x.id!==id);
   saveDraft(); await paintPhotoGrid();
 }
