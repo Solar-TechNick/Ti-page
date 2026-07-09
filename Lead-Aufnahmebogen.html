@@ -705,6 +705,104 @@ function showToast(msg,type){
   state.toastTimer=setTimeout(()=>el.style.display='none', 2600);
 }
 
+/* ============ ACTIONS ============ */
+function onClickExtra(act,a,e){
+  if(act==='save') return doSaveToList();
+  if(act==='new') return doNew();
+  if(act==='reset') return doReset();
+  if(act==='export') return doExport();
+  if(act==='import') return doImport();
+  if(act==='load') return doLoadList();
+  if(act==='loadentry') return loadEntry(+a.dataset.idx);
+  if(act==='closemodal') return closeModal();
+  if(act==='menu') return openMenu();
+  if(act==='pdf') { closeModal(); return doPDF(); }        // Task 10
+  if(act==='print'){ closeModal(); return window.print(); }
+}
+
+function snapshot(){ return { leadId:state.leadId, data:JSON.parse(JSON.stringify(strip(state.data))), sent:state.sent, savedAt:new Date().toLocaleString('de-DE') }; }
+function strip(data){ const d=JSON.parse(JSON.stringify(data)); (d.photos||[]).forEach(p=>delete p._thumbUrl); return d; }
+
+function doSaveToList(){
+  const list=loadList();
+  const snap=snapshot();
+  const idx=list.findIndex(x=>x.leadId===state.leadId);
+  if(idx>=0) list[idx]=snap; else list.unshift(snap);
+  if(list.length>50) list.length=50;
+  try{ localStorage.setItem(LS_LIST, JSON.stringify(list)); }catch(_){}
+  showToast('Lead gespeichert ✓','success');
+}
+async function doNew(){
+  if(!confirm('Neuen Lead anlegen? Aktueller Stand wird in die Liste gespeichert.')) return;
+  doSaveToList();
+  state.leadId=newLeadId();
+  state.data={ datum:todayISO(), roofs:[{}], photos:[] };
+  state.sent=null; state.open={}; state.showAll=false;
+  saveDraft(); renderLayout(); refreshSendBtn();
+  showToast('Neuer Lead angelegt','success');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+async function doReset(){
+  if(!confirm('Alle Felder zurücksetzen? Fotos dieses Leads werden gelöscht.')) return;
+  await photosDeleteByLead(state.leadId).catch(()=>{});
+  state.data={ datum:todayISO(), roofs:[{}], photos:[] };
+  state.sent=null; state.open={}; state.showAll=false;
+  saveDraft(); renderLayout(); refreshSendBtn();
+  showToast('Zurückgesetzt');
+}
+function doExport(){
+  const n=[state.data.vorname,state.data.nachname].filter(Boolean).join('_')||'lead';
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([JSON.stringify(strip(state.data),null,2)],{type:'application/json'}));
+  a.download='Lead_'+n+'_'+(state.data.datum||'export')+'.json'; a.click();
+  showToast('JSON exportiert ✓ (ohne Fotos)','success');
+}
+function doImport(){
+  const inp=document.createElement('input'); inp.type='file'; inp.accept='.json';
+  inp.onchange=async ev=>{ try{
+      const obj=JSON.parse(await ev.target.files[0].text());
+      state.leadId=newLeadId(); // imported data has no photos in IndexedDB under this id
+      state.data=Object.assign({datum:todayISO(),roofs:[{}],photos:[]}, obj);
+      if(!Array.isArray(state.data.roofs)||!state.data.roofs.length) state.data.roofs=[{}];
+      if(!Array.isArray(state.data.photos)) state.data.photos=[]; state.data.photos=[]; // no blobs imported
+      state.sent=null; state.open={};
+      saveDraft(); renderLayout(); refreshSendBtn(); showToast('Importiert ✓','success');
+    }catch(_){ showToast('Ungültige Datei','error'); } };
+  inp.click();
+}
+function doLoadList(){
+  state.savedList=loadList();
+  let h='<div class="modal-bg" data-act="closemodal"><div class="modal" onclick="event.stopPropagation()">';
+  h+='<h3>📂 Gespeicherte Leads</h3>';
+  if(!state.savedList.length){ h+='<p style="color:var(--muted)">Keine Leads gespeichert.</p>'; }
+  else state.savedList.forEach((it,i)=>{ const d=it.data||{};
+    h+='<div class="modal-item" data-act="loadentry" data-idx="'+i+'"><div class="name">'
+      +esc(d.vorname||'')+' '+esc(d.nachname||'—')+(d.firma?' ('+esc(d.firma)+')':'')+'</div>'
+      +'<div class="info">Nr: '+esc(d.lead_nr||'–')+' · '+esc(it.savedAt||'')+(it.sent?' · gesendet':'')+'</div></div>'; });
+  h+='<button class="close" data-act="closemodal">Schließen</button></div></div>';
+  document.getElementById('modal').innerHTML=h;
+}
+function loadEntry(i){
+  const it=state.savedList[i]; if(!it) return;
+  state.leadId=it.leadId||newLeadId();
+  state.data=Object.assign({datum:todayISO(),roofs:[{}],photos:[]}, it.data);
+  if(!Array.isArray(state.data.roofs)||!state.data.roofs.length) state.data.roofs=[{}];
+  if(!Array.isArray(state.data.photos)) state.data.photos=[];
+  state.sent=it.sent||null; state.open={}; state.showAll=false;
+  saveDraft(); closeModal(); renderLayout(); refreshSendBtn();
+  showToast('Lead geladen','success'); window.scrollTo({top:0,behavior:'smooth'});
+}
+function closeModal(){ document.getElementById('modal').innerHTML=''; }
+function openMenu(){
+  const items=[['load','📂 Gespeicherte Leads'],['new','📄 Neuer Lead'],['pdf','📄 Als PDF speichern'],
+    ['print','🖨 Drucken'],['export','📥 JSON Export'],['import','📤 JSON Import'],['reset','↺ Zurücksetzen']];
+  let h='<div class="modal-bg" data-act="closemodal"><div class="modal" onclick="event.stopPropagation()"><h3>Menü</h3>';
+  h+=items.map(([act,lbl])=>'<button class="menu-item" data-act="'+act+'">'+lbl+'</button>').join('');
+  h+='<button class="close" data-act="closemodal">Schließen</button></div></div>';
+  document.getElementById('modal').innerHTML=h;
+}
+function refreshSendBtn(){ /* filled in Task 11 */ }
+
 /* ============ BOOT ============ */
 function boot(){
   const d=loadDraft();
@@ -719,12 +817,18 @@ function boot(){
     + '<div class="sub">Technik- &amp; Instandsetzungs GmbH · PV · WP · Speicher · Wallbox</div></div>'
     + '<div class="saved" id="saved-ind"></div>'
     + '</div>'
-    + '<div class="layout"></div>';
+    + '<div class="layout"></div>'
+    + '<div class="actionbar">'
+    +   '<button class="btn save" data-act="save">💾 Speichern</button>'
+    +   '<button class="btn send" data-act="send" id="send-btn">✉ An Büro senden</button>'
+    +   '<button class="btn more" data-act="menu">⋯</button>'
+    + '</div>';
 
   const app=document.getElementById('app');
   app.addEventListener('input', onInput);
   app.addEventListener('click', onClick);
   app.addEventListener('change', onChange);
+  document.getElementById('modal').addEventListener('click', onClick);
 
   renderLayout();
   if(d) setTimeout(()=>showToast('Letzten Stand geladen','success'), 400);
