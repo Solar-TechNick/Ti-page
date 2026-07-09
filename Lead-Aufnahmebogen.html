@@ -751,7 +751,8 @@ async function doReset(){
   showToast('Zurückgesetzt');
 }
 function doExport(){
-  const n=[state.data.vorname,state.data.nachname].filter(Boolean).join('_')||'lead';
+  const clean=s=>String(s||'').replace(/[^a-zA-Z0-9äöüÄÖÜß\-]/g,'');
+  const n=[state.data.vorname,state.data.nachname].map(clean).filter(Boolean).join('_')||'lead';
   const a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob([JSON.stringify(strip(state.data),null,2)],{type:'application/json'}));
   a.download='Lead_'+n+'_'+(state.data.datum||'export')+'.json'; a.click();
@@ -764,7 +765,7 @@ function doImport(){
       state.leadId=newLeadId(); // imported data has no photos in IndexedDB under this id
       state.data=Object.assign({datum:todayISO(),roofs:[{}],photos:[]}, obj);
       if(!Array.isArray(state.data.roofs)||!state.data.roofs.length) state.data.roofs=[{}];
-      if(!Array.isArray(state.data.photos)) state.data.photos=[]; state.data.photos=[]; // no blobs imported
+      state.data.photos=[]; // imported JSON carries no photo blobs
       state.sent=null; state.open={};
       saveDraft(); renderLayout(); refreshSendBtn(); showToast('Importiert ✓','success');
     }catch(_){ showToast('Ungültige Datei','error'); } };
@@ -772,7 +773,7 @@ function doImport(){
 }
 function doLoadList(){
   state.savedList=loadList();
-  let h='<div class="modal-bg" data-act="closemodal"><div class="modal" onclick="event.stopPropagation()">';
+  let h='<div class="modal-bg" data-act="closemodal"><div class="modal" data-act="noop">';
   h+='<h3>📂 Gespeicherte Leads</h3>';
   if(!state.savedList.length){ h+='<p style="color:var(--muted)">Keine Leads gespeichert.</p>'; }
   else state.savedList.forEach((it,i)=>{ const d=it.data||{};
@@ -796,7 +797,7 @@ function closeModal(){ document.getElementById('modal').innerHTML=''; }
 function openMenu(){
   const items=[['load','📂 Gespeicherte Leads'],['new','📄 Neuer Lead'],['pdf','📄 Als PDF speichern'],
     ['print','🖨 Drucken'],['export','📥 JSON Export'],['import','📤 JSON Import'],['reset','↺ Zurücksetzen']];
-  let h='<div class="modal-bg" data-act="closemodal"><div class="modal" onclick="event.stopPropagation()"><h3>Menü</h3>';
+  let h='<div class="modal-bg" data-act="closemodal"><div class="modal" data-act="noop"><h3>Menü</h3>';
   h+=items.map(([act,lbl])=>'<button class="menu-item" data-act="'+act+'">'+lbl+'</button>').join('');
   h+='<button class="close" data-act="closemodal">Schließen</button></div></div>';
   document.getElementById('modal').innerHTML=h;
