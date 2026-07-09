@@ -590,7 +590,8 @@ function metaCardHTML(){
 }
 function signatureCardHTML(){
   const caps=['Unterschrift Kunde','Unterschrift Berater'];
-  return '<div class="card open" id="sec-sig"><button class="sec-head" data-act="toggle" data-sec="sig">'
+  const open = state.open.sig !== false;
+  return '<div class="card'+(open?' open':'')+'" id="sec-sig"><button class="sec-head" data-act="toggle" data-sec="sig">'
     +'<span class="ic">✍️</span><span class="t">13. Einwilligung &amp; Unterschriften</span><span class="chev">▾</span></button>'
     +'<div class="sec-body"><p class="consent">Der Kunde erklärt sich mit der Erhebung und Verarbeitung der Daten zum '
     +'Zweck der Angebotserstellung einverstanden. Die Datenschutzerklärung wurde zur Kenntnis genommen.</p>'
@@ -738,7 +739,7 @@ async function doNew(){
   doSaveToList();
   state.leadId=newLeadId();
   state.data={ datum:todayISO(), roofs:[{}], photos:[] };
-  state.sent=null; state.open={}; state.showAll=false;
+  state.sent=null; state.open={}; state.showAll=false; state.activeSection='kunde';
   saveDraft(); renderLayout(); refreshSendBtn();
   showToast('Neuer Lead angelegt','success');
   window.scrollTo({top:0,behavior:'smooth'});
@@ -747,7 +748,7 @@ async function doReset(){
   if(!confirm('Alle Felder zurücksetzen? Fotos dieses Leads werden gelöscht.')) return;
   await photosDeleteByLead(state.leadId).catch(()=>{});
   state.data={ datum:todayISO(), roofs:[{}], photos:[] };
-  state.sent=null; state.open={}; state.showAll=false;
+  state.sent=null; state.open={}; state.showAll=false; state.activeSection='kunde';
   saveDraft(); renderLayout(); refreshSendBtn();
   showToast('Zurückgesetzt');
 }
@@ -767,7 +768,7 @@ function doImport(){
       state.data=Object.assign({datum:todayISO(),roofs:[{}],photos:[]}, obj);
       if(!Array.isArray(state.data.roofs)||!state.data.roofs.length) state.data.roofs=[{}];
       state.data.photos=[]; // imported JSON carries no photo blobs
-      state.sent=null; state.open={};
+      state.sent=null; state.open={}; state.showAll=false; state.activeSection='kunde';
       saveDraft(); renderLayout(); refreshSendBtn(); showToast('Importiert ✓','success');
     }catch(_){ showToast('Ungültige Datei','error'); } };
   inp.click();
@@ -790,7 +791,7 @@ function loadEntry(i){
   state.data=Object.assign({datum:todayISO(),roofs:[{}],photos:[]}, it.data);
   if(!Array.isArray(state.data.roofs)||!state.data.roofs.length) state.data.roofs=[{}];
   if(!Array.isArray(state.data.photos)) state.data.photos=[];
-  state.sent=it.sent||null; state.open={}; state.showAll=false;
+  state.sent=it.sent||null; state.open={}; state.showAll=false; state.activeSection='kunde';
   saveDraft(); closeModal(); renderLayout(); refreshSendBtn();
   showToast('Lead geladen','success'); window.scrollTo({top:0,behavior:'smooth'});
 }
@@ -842,7 +843,6 @@ async function doSend(){
 }
 
 /* ============ PDF ============ */
-function fieldLabel(id){ const f=findField(id); return f?f.label:id; }
 function pdfFilename(){
   const clean=s=>String(s||'').replace(/[^a-zA-Z0-9äöüÄÖÜß\-]/g,'');
   const parts=['Lead'];
@@ -857,20 +857,19 @@ function sectionPrintHTML(s){
   s.fields.forEach(function walk(f){
     if(f.type==='row') return f.children.forEach(walk);
     if(f.type==='subheader'){ rows.push('<div class="ps">'+esc(f.label)+'</div>'); return; }
-    if(f.type==='roofs' || f.type==='photos') return;
+    if(f.type==='photos') return;
+    if(f.type==='roofs'){
+      (state.data.roofs||[]).forEach((roof,i)=>{
+        const parts=ROOF_FIELDS.filter(rf=>isFilled(roof&&roof[rf.id])).map(rf=>esc(rf.label)+': '+esc(roof[rf.id]));
+        if(parts.length) rows.push('<div class="pr"><span class="pk">Dachfläche '+(i+1)+':</span> <span class="pv">'+parts.join(' · ')+'</span></div>');
+      });
+      return;
+    }
     if(!f.id) return;
     const v=state.data[f.id];
     if(!isFilled(v)) return;
     rows.push('<div class="pr"><span class="pk">'+esc(f.label)+':</span> <span class="pv">'+fmtVal(v)+'</span></div>');
   });
-  // roofs (only in objekt)
-  if(s.id==='objekt'){
-    (state.data.roofs||[]).forEach((roof,i)=>{
-      const parts=ROOF_FIELDS.filter(rf=>isFilled(roof&&roof[rf.id])).map(rf=>esc(rf.label)+': '+esc(roof[rf.id]));
-      if(parts.length) rows.push('<div class="pr"><span class="pk">Dachfläche '+(i+1)+':</span> <span class="pv">'+parts.join(' · ')+'</span></div>');
-    });
-  }
-  // drop subheaders with no following rows
   const cleaned=[]; for(let i=0;i<rows.length;i++){ const isHdr=rows[i].indexOf('class="ps"')>=0;
     if(isHdr && (i===rows.length-1 || rows[i+1].indexOf('class="ps"')>=0)) continue; cleaned.push(rows[i]); }
   if(!cleaned.length) return '';
