@@ -428,7 +428,8 @@ function onCheck(id,val){
 /* ============ RENDER: layout ============ */
 function sectionCardHTML(s){
   const {filled,total}=sectionProgress(s);
-  const open = state.open[s.id] !== false; // default open
+  const explicit = state.open[s.id];
+  const open = explicit !== undefined ? explicit : (s.trade ? (state.showAll || (state.data.gewerke||[]).includes(s.trade)) : true);
   return '<div class="card'+(open?' open':'')+'" id="sec-'+s.id+'">'
     + '<button class="sec-head" data-act="toggle" data-sec="'+s.id+'">'
     +   '<span class="ic">'+s.icon+'</span>'
@@ -491,6 +492,23 @@ function toggleSection(id){
   card.classList.toggle('open', nowOpen);
   state.open[id]=nowOpen;
 }
+function sectionActive(s){
+  if(!s.trade) return true;
+  return state.showAll || (state.data.gewerke||[]).includes(s.trade);
+}
+function applyConditional(){
+  SECTIONS.forEach(s=>{
+    const card=document.getElementById('sec-'+s.id); if(!card) return;
+    const active=sectionActive(s);
+    // A trade section the user hasn't explicitly toggled collapses when inactive, expands when active.
+    if(s.trade && state.open[s.id]===undefined){
+      card.classList.toggle('open', active);
+    }
+    // dim its sidebar row when inactive
+    const nav=document.querySelector('.sidebar button[data-act="nav"][data-sec="'+s.id+'"]');
+    if(nav) nav.classList.toggle('dim', s.trade && !active);
+  });
+}
 function gotoSection(id){
   state.activeSection=id;
   const card=document.getElementById('sec-'+id);
@@ -529,6 +547,16 @@ function onClick(e){
   if(act==='check') return onCheck(a.dataset.field, a.dataset.val);   // Task 4
   if(act==='toggle') return toggleSection(a.dataset.sec);
   if(act==='nav'){ return gotoSection(a.dataset.sec); }
+  if(act==='showall'){
+    state.showAll=!state.showAll;
+    const btn=document.getElementById('showall-btn');
+    if(btn) btn.textContent = state.showAll ? 'Nur relevante Abschnitte' : 'Alle Abschnitte anzeigen';
+    // reset explicit toggles for trade sections so conditional logic drives them again
+    SECTIONS.forEach(s=>{ if(s.trade) delete state.open[s.id]; });
+    SECTIONS.forEach(s=>{ if(s.trade){ const c=document.getElementById('sec-'+s.id); if(c) c.classList.toggle('open', state.showAll || (state.data.gewerke||[]).includes(s.trade)); }});
+    applyConditional();
+    return;
+  }
   if(typeof onClickExtra==='function') onClickExtra(act, a, e);
 }
 function onChange(e){
