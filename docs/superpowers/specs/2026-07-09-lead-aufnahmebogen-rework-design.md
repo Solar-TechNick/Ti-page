@@ -42,7 +42,10 @@ path that POSTs the lead + photos to the backend, replacing the `mailto:` button
 ## 4. Packaging & architecture
 
 - **One self-contained file** `Lead-Aufnahmebogen.html` at the site root, served from the Plesk
-  webserver (same origin as the PHP backend — the "send" POST is same-origin).
+  webserver. The "send to office" POST goes to the existing API subdomain
+  (`API_BASE = "https://api.technik-prignitz.de"`) exactly like the site's `contact`/`angebot`
+  forms — cross-origin, relying on the backend's configured CORS allow-list (the field app's origin
+  must be whitelisted there).
 - **Vanilla JS, no framework, no build step.** All CSS/JS inline, internally organized into
   clearly-commented modules:
   - **Schema** — the `SECTIONS` data (preserved from today, with the roof change in §6b).
@@ -139,13 +142,13 @@ Rendered via the bundled `html2pdf`. Filename: `Lead_<Nr>_<Nachname>_<Datum>.pdf
 Two actions replace today's Save/E-Mail/PDF cluster:
 
 - **Als PDF speichern** — offline; downloads the §6d PDF.
-- **An Büro senden** — `POST /api/lead.php` as `multipart/form-data`:
+- **An Büro senden** — `POST ${API_BASE}/lead.php` as `multipart/form-data` (mirrors `angebot.php`):
   - `payload` — JSON string of the full `data` object: all scalar/array field values (by id) +
     `roofs[]` + `photos[]` metadata + meta (`datum`, `berater`, `lead_nr`, signatures).
   - `files[]` — the photo blobs (full compressed images), with original filenames; category travels
     in `payload.photos[i].category` matched by order/id.
-  - `csrf` — CSRF token (per existing backend convention).
-  - `website` — honeypot field, empty (per existing backend convention).
+  - `website` — honeypot field, empty. Public API endpoints use **honeypot + rate-limit + CORS,
+    no CSRF token** (CSRF is admin-only in this backend), matching `angebot.php`/`contact.php`.
   - **Success** `{ ok: true, id }` → toast "An Büro gesendet ✓"; mark lead `sent` with `serverId`
     + timestamp.
   - **Failure / offline** → lead stays flagged **nicht gesendet**; a retry ("Erneut senden") button
