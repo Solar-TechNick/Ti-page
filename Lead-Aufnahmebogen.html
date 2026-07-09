@@ -426,26 +426,77 @@ function onCheck(id,val){
 }
 
 /* ============ RENDER: layout ============ */
-function renderLayout(){
-  let main='<div class="main">';
-  // meta card
-  main+='<div class="card open"><div class="sec-body" style="padding-top:14px"><div class="row">'
-    + Object.keys(META).map(k=>{
-        const m=META[k], v=state.data[k]||'';
-        return '<div class="field"><label>'+esc(m.label)+'</label><input type="'+m.type+'" value="'+esc(v)+'" data-field="'+k+'"></div>';
-      }).join('')
-    + '</div></div></div>';
-  // sections
+function sectionCardHTML(s){
+  const {filled,total}=sectionProgress(s);
+  const open = state.open[s.id] !== false; // default open
+  return '<div class="card'+(open?' open':'')+'" id="sec-'+s.id+'">'
+    + '<button class="sec-head" data-act="toggle" data-sec="'+s.id+'">'
+    +   '<span class="ic">'+s.icon+'</span>'
+    +   '<span class="t">'+s.num+'. '+esc(s.title)+'</span>'
+    +   '<span class="badge'+(total>0&&filled===total?' done':'')+'" id="badge-'+s.id+'">'+filled+' / '+total+'</span>'
+    +   '<span class="chev">▾</span>'
+    + '</button>'
+    + '<div class="sec-body">'+s.fields.map(renderField).join('')+'</div>'
+    + '</div>';
+}
+function sidebarHTML(){
+  let h='<div class="sidebar"><div class="label">Abschnitte</div>';
   SECTIONS.forEach(s=>{
-    main+='<div class="card open" id="sec-'+s.id+'">'
-      + '<div class="sec-body">'
-      + s.fields.map(renderField).join('')
-      + '</div></div>';
+    const {filled,total}=sectionProgress(s);
+    h+='<button data-act="nav" data-sec="'+s.id+'"'+(state.activeSection===s.id?' class="active"':'')+'>'
+      +'<span>'+s.icon+'</span><span>'+esc(s.title)+'</span>'
+      +'<span class="badge" id="sbadge-'+s.id+'">'+filled+'/'+total+'</span></button>';
   });
-  main+='</div>';
-  document.querySelector('.layout').innerHTML = main;
-  renderGroupsInto();      // Task 4
+  h+='<div class="progress-wrap"><div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>'
+    +'<div class="progress-text" id="progress-text"></div></div></div>';
+  return h;
+}
+function jumperHTML(){
+  let opts=SECTIONS.map(s=>'<option value="'+s.id+'">'+s.num+'. '+esc(s.title)+'</option>').join('');
+  return '<div class="jumper"><select id="jump" data-act="jump">'+opts+'</select>'
+    +'<div class="showall-row"><button data-act="showall" id="showall-btn">Alle Abschnitte anzeigen</button></div></div>';
+}
+function metaCardHTML(){
+  return '<div class="card open"><div class="sec-body" style="padding-top:14px"><div class="row">'
+    + Object.keys(META).map(k=>{ const m=META[k], v=state.data[k]||'';
+        return '<div class="field"><label>'+esc(m.label)+'</label><input type="'+m.type+'" value="'+esc(v)+'" data-field="'+k+'"></div>'; }).join('')
+    + '</div></div></div>';
+}
+function signatureCardHTML(){
+  const caps=['Unterschrift Kunde','Unterschrift Berater'];
+  return '<div class="card open" id="sec-sig"><button class="sec-head" data-act="toggle" data-sec="sig">'
+    +'<span class="ic">✍️</span><span class="t">13. Einwilligung &amp; Unterschriften</span><span class="chev">▾</span></button>'
+    +'<div class="sec-body"><p class="consent">Der Kunde erklärt sich mit der Erhebung und Verarbeitung der Daten zum '
+    +'Zweck der Angebotserstellung einverstanden. Die Datenschutzerklärung wurde zur Kenntnis genommen.</p>'
+    +'<div class="sig-row">'
+    + caps.map((c,i)=>'<div class="sig-field"><input type="text" value="'+esc(state.data['sig_'+i]||'')+'" placeholder="Hier tippen…" data-field="sig_'+i+'"><div class="cap">'+c+'</div></div>').join('')
+    +'</div></div></div>';
+}
+function renderLayout(){
+  const layout=document.querySelector('.layout');
+  layout.innerHTML = sidebarHTML()
+    + '<div class="main">'
+    +   jumperHTML() + metaCardHTML()
+    +   SECTIONS.map(sectionCardHTML).join('')
+    +   signatureCardHTML()
+    + '</div>';
+  if(typeof applyConditional==='function') applyConditional(); // Task 7
+  if(typeof renderRoofs==='function') renderRoofs();           // Task 8
+  if(typeof renderPhotos==='function') renderPhotos();         // Task 10
   updateProgress();
+}
+function toggleSection(id){
+  const card=document.getElementById('sec-'+id); if(!card) return;
+  const nowOpen=!card.classList.contains('open');
+  card.classList.toggle('open', nowOpen);
+  state.open[id]=nowOpen;
+}
+function gotoSection(id){
+  state.activeSection=id;
+  const card=document.getElementById('sec-'+id);
+  if(card){ card.classList.add('open'); state.open[id]=true;
+    window.scrollTo({top:card.getBoundingClientRect().top+window.scrollY-70,behavior:'smooth'}); }
+  document.querySelectorAll('.sidebar button[data-act="nav"]').forEach(b=>b.classList.toggle('active', b.dataset.sec===id));
 }
 
 /* ============ PROGRESS ============ */
@@ -456,10 +507,11 @@ function updateProgress(){
   if(fill){ fill.style.width=p+'%'; fill.style.background=c; }
   if(txt){ txt.textContent=Math.round(p)+'% ausgefüllt'; }
   SECTIONS.forEach(s=>{
-    const b=document.getElementById('badge-'+s.id); if(!b) return;
     const {filled,total}=sectionProgress(s);
-    b.textContent=filled+' / '+total;
-    b.classList.toggle('done', total>0 && filled===total);
+    const b=document.getElementById('badge-'+s.id);
+    if(b){ b.textContent=filled+' / '+total; b.classList.toggle('done', total>0 && filled===total); }
+    const sb=document.getElementById('sbadge-'+s.id);
+    if(sb){ sb.textContent=filled+'/'+total; }
   });
   const si=document.getElementById('saved-ind'); if(si) si.textContent='gespeichert';
 }
@@ -475,10 +527,14 @@ function onClick(e){
   const act=a.dataset.act;
   if(act==='radio') return onRadio(a.dataset.field, a.dataset.val);   // Task 4
   if(act==='check') return onCheck(a.dataset.field, a.dataset.val);   // Task 4
-  // later: toggle, nav, showall, roof-add, roof-del, photo-del, save, new, load, reset, export, import, pdf, send, print, loadentry, closemodal
+  if(act==='toggle') return toggleSection(a.dataset.sec);
+  if(act==='nav'){ return gotoSection(a.dataset.sec); }
   if(typeof onClickExtra==='function') onClickExtra(act, a, e);
 }
-function onChange(e){ if(typeof onChangeExtra==='function') onChangeExtra(e); }
+function onChange(e){
+  if(e.target.id==='jump'){ return gotoSection(e.target.value); }
+  if(typeof onChangeExtra==='function') onChangeExtra(e);
+}
 
 /* ============ TOAST ============ */
 function showToast(msg,type){
