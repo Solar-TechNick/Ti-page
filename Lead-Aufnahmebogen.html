@@ -685,6 +685,7 @@ function onClick(e){
   if(act==='roof-add') return addRoof();
   if(act==='roof-del') return removeRoof(+a.dataset.idx);
   if(act==='photo-del') return removePhoto(a.dataset.id);
+  if(act==='send') return doSend();
   if(typeof onClickExtra==='function') onClickExtra(act, a, e);
 }
 function onChange(e){
@@ -802,7 +803,41 @@ function openMenu(){
   h+='<button class="close" data-act="closemodal">Schließen</button></div></div>';
   document.getElementById('modal').innerHTML=h;
 }
-function refreshSendBtn(){ /* filled in Task 11 */ }
+function refreshSendBtn(){
+  const b=document.getElementById('send-btn'); if(!b) return;
+  b.classList.remove('send','sent','unsent');
+  if(state.sent){ b.classList.add('sent'); b.textContent='✓ Gesendet – erneut senden'; }
+  else { b.classList.add('send'); b.textContent='✉ An Büro senden'; }
+}
+function buildPayload(){
+  const d=strip(state.data);
+  return JSON.stringify(Object.assign({}, d, { _leadId:state.leadId, _sentBefore:state.sent||null }));
+}
+async function doSend(){
+  const btn=document.getElementById('send-btn'); if(btn) btn.disabled=true;
+  showToast('Wird gesendet…','info');
+  try{
+    const fd=new FormData();
+    fd.append('payload', buildPayload());
+    fd.append('website','');
+    // append photo blobs in the same order as state.data.photos so payload.photos[i] aligns with files[i]
+    const recs=await photosByLead(state.leadId);
+    const byId={}; recs.forEach(r=>byId[r.id]=r);
+    state.data.photos.forEach(p=>{ const r=byId[p.id]; if(r) fd.append('files[]', r.blob, r.name||(p.id+'.jpg')); });
+    const res=await fetch(API_BASE+'/lead.php',{method:'POST',body:fd});
+    const data=await res.json().catch(()=>({}));
+    if(res.status===413){ showToast('Dateien zu groß','error'); }
+    else if(res.ok && data.ok){
+      state.sent={ serverId:data.id, sentAt:new Date().toISOString() };
+      saveDraft(); doSaveToList(); refreshSendBtn();
+      showToast('An Büro gesendet ✓','success');
+    } else {
+      showToast('Senden fehlgeschlagen – bitte erneut versuchen','error');
+    }
+  }catch(_){
+    showToast('Offline oder Serverfehler – erneut senden, sobald online','error');
+  }finally{ if(btn) btn.disabled=false; }
+}
 
 /* ============ PDF ============ */
 function fieldLabel(id){ const f=findField(id); return f?f.label:id; }
@@ -927,6 +962,7 @@ function boot(){
   document.getElementById('modal').addEventListener('click', onClick);
 
   renderLayout();
+  refreshSendBtn();
   if(d) setTimeout(()=>showToast('Letzten Stand geladen','success'), 400);
 }
 
