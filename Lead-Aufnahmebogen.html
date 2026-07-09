@@ -425,6 +425,34 @@ function onCheck(id,val){
   if(id==='gewerke' && typeof applyConditional==='function') applyConditional();
 }
 
+/* ============ RENDER: roofs ============ */
+function roofCardHTML(roof,i){
+  const rows=[];
+  for(let k=0;k<ROOF_FIELDS.length;k+=2){
+    const pair=ROOF_FIELDS.slice(k,k+2).map(rf=>{
+      const v=(roof&&roof[rf.id])||'';
+      return '<div class="field"><label>'+esc(rf.label)+'</label>'
+        +'<input type="text" value="'+esc(v)+'" placeholder="'+esc(rf.ph||'')+'" data-roof="'+i+'" data-rfield="'+rf.id+'"></div>';
+    }).join('');
+    rows.push('<div class="row">'+pair+'</div>');
+  }
+  return '<div class="roof"><div class="roof-head"><span class="rt">Dachfläche '+(i+1)+'</span>'
+    + (state.data.roofs.length>1 ? '<button class="icon-btn" data-act="roof-del" data-idx="'+i+'" title="Entfernen">🗑</button>' : '')
+    + '</div>'+rows.join('')+'</div>';
+}
+function renderRoofs(){
+  const el=document.getElementById('roofs'); if(!el) return;
+  el.innerHTML = state.data.roofs.map(roofCardHTML).join('')
+    + '<button class="add-btn" data-act="roof-add">＋ Dachfläche hinzufügen</button>';
+}
+function onRoofInput(el){
+  const i=+el.dataset.roof, f=el.dataset.rfield;
+  if(!state.data.roofs[i]) state.data.roofs[i]={};
+  state.data.roofs[i][f]=el.value; saveDraft();
+}
+function addRoof(){ state.data.roofs.push({}); saveDraft(); renderRoofs(); }
+function removeRoof(i){ state.data.roofs.splice(i,1); if(!state.data.roofs.length) state.data.roofs.push({}); saveDraft(); renderRoofs(); }
+
 /* ============ RENDER: layout ============ */
 function sectionCardHTML(s){
   const {filled,total}=sectionProgress(s);
@@ -557,6 +585,8 @@ function onClick(e){
     applyConditional();
     return;
   }
+  if(act==='roof-add') return addRoof();
+  if(act==='roof-del') return removeRoof(+a.dataset.idx);
   if(typeof onClickExtra==='function') onClickExtra(act, a, e);
 }
 function onChange(e){
