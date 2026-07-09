@@ -141,11 +141,11 @@ button{font-family:inherit}
   padding:10px 12px;padding-bottom:calc(10px + env(safe-area-inset-bottom))}
 .btn{flex:1 1 auto;min-height:var(--tap);border:none;border-radius:var(--radius-sm);cursor:pointer;
   font-size:14px;font-weight:700;color:#fff;padding:10px 12px;display:inline-flex;align-items:center;justify-content:center;gap:6px}
-.btn.save{background:linear-gradient(135deg,#1e8449,#27ae60)}
+.btn.save{background:linear-gradient(135deg,#15663a,#1e8449)}
 .btn.send{background:linear-gradient(135deg,#1f5f9e,#2264a8)}
 .btn.more{flex:0 0 auto;background:#eef2f7;color:var(--brand-dark)}
 .btn.sent{background:linear-gradient(135deg,#0f6b39,#1e8449)}
-.btn.unsent{background:linear-gradient(135deg,#a15a00,#c77700)}
+.btn.unsent{background:linear-gradient(135deg,#7a4400,#a15a00)}
 
 /* toast + modal */
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:84px;z-index:9999;padding:12px 20px;border-radius:12px;
@@ -402,8 +402,8 @@ function getProgress(){
 function renderField(f){
   if(f.type==='subheader') return '<div class="sub-header">'+esc(f.label)+'</div>';
   if(f.type==='row') return '<div class="row">'+f.children.map(renderField).join('')+'</div>';
-  if(f.type==='roofs') return '<div id="roofs"></div>';   // filled in Task 8
-  if(f.type==='photos') return '<div id="photos-block"></div>'; // filled in Task 10
+  if(f.type==='roofs') return '<div id="roofs"></div>';   // rendered by renderRoofs()
+  if(f.type==='photos') return '<div id="photos-block"></div>'; // rendered by renderPhotos()
   if(f.type==='text'||f.type==='date'){
     const v=state.data[f.id]||'';
     return '<div class="field'+(f.full?' full':'')+'"><label>'+esc(f.label)+'</label>'
@@ -469,7 +469,7 @@ function roofCardHTML(roof,i){
     rows.push('<div class="row">'+pair+'</div>');
   }
   return '<div class="roof"><div class="roof-head"><span class="rt">Dachfläche '+(i+1)+'</span>'
-    + (state.data.roofs.length>1 ? '<button class="icon-btn" data-act="roof-del" data-idx="'+i+'" title="Entfernen">🗑</button>' : '')
+    + (state.data.roofs.length>1 ? '<button class="icon-btn" data-act="roof-del" data-idx="'+i+'" title="Entfernen" aria-label="Dachfläche entfernen">🗑</button>' : '')
     + '</div>'+rows.join('')+'</div>';
 }
 function renderRoofs(){
@@ -606,9 +606,9 @@ function renderLayout(){
     +   SECTIONS.map(sectionCardHTML).join('')
     +   signatureCardHTML()
     + '</div>';
-  if(typeof applyConditional==='function') applyConditional(); // Task 7
-  if(typeof renderRoofs==='function') renderRoofs();           // Task 8
-  if(typeof renderPhotos==='function') renderPhotos();         // Task 10
+  if(typeof applyConditional==='function') applyConditional();
+  if(typeof renderRoofs==='function') renderRoofs();
+  if(typeof renderPhotos==='function') renderPhotos();
   updateProgress();
 }
 function toggleSection(id){
