@@ -188,7 +188,7 @@ const API_BASE = "https://api.technik-prignitz.de";
 // Schema (Task 3) · State (Task 3) · Storage (Task 3, 9) · Image (Task 9)
 // Render (Task 3-8) · Actions (Task 10) · PDF (Task 11) · Backend (Task 12)
 
-function esc(s){const d=document.createElement('div');d.textContent=(s==null?'':String(s));return d.innerHTML;}
+function esc(s){return (s==null?'':String(s)).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
 
 /* ============ SCHEMA ============ */
 const GEWERKE = ["Photovoltaik","Batteriespeicher","Wärmepumpe","Wallbox / Ladesäule","Austausch Anlage","Erweiterung PV","Notstrom / Insel"];
