@@ -1,0 +1,14 @@
+{
+  "name": "Lead-Aufnahmebogen",
+  "short_name": "Lead-Bogen",
+  "description": "Technik- & Instandsetzungs GmbH – Lead-Aufnahme im Außendienst",
+  "start_url": "../../Lead-Aufnahmebogen.html",
+  "scope": "../../",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f0f3f7",
+  "theme_color": "#163d64",
+  "icons": [
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}
