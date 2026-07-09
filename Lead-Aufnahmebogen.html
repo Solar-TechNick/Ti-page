@@ -384,7 +384,46 @@ function renderField(f){
   if(f.type==='radio'||f.type==='checkbox') return renderGroup(f); // Task 4
   return '';
 }
-function renderGroup(f){ return '<div class="optgroup" id="grp-'+f.id+'"></div>'; } // replaced in Task 4
+const CHECK_SVG='<svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+function optHTML(f,o){
+  const isCheck=f.type==='checkbox';
+  const sel=isCheck ? (state.data[f.id]||[]).includes(o) : state.data[f.id]===o;
+  return '<button type="button" class="opt'+(isCheck?' check':'')+(sel?' sel':'')+'" '
+    + 'data-act="'+(isCheck?'check':'radio')+'" data-field="'+f.id+'" data-val="'+esc(o)+'">'
+    + '<span class="mk">'+(isCheck?CHECK_SVG:'')+'</span>'+esc(o)+'</button>';
+}
+function groupInner(f){
+  return '<span class="lbl">'+esc(f.label)+'</span><div class="opts">'
+    + f.options.map(o=>optHTML(f,o)).join('')+'</div>';
+}
+function renderGroup(f){ return '<div class="optgroup" id="grp-'+f.id+'">'+groupInner(f)+'</div>'; }
+function renderGroupsInto(){ /* groups now render inline via renderGroup; nothing to backfill */ }
+function refreshGroup(id){
+  const el=document.getElementById('grp-'+id);
+  const f=findField(id); if(el&&f) el.innerHTML=groupInner(f);
+}
+function findField(id){
+  let found=null;
+  SECTIONS.forEach(s=>s.fields.forEach(function walk(f){
+    if(found) return;
+    if(f.type==='row') return f.children.forEach(walk);
+    if(f.id===id) found=f;
+  }));
+  return found;
+}
+function onRadio(id,val){
+  state.data[id] = (state.data[id]===val) ? '' : val;
+  saveDraft(); refreshGroup(id); updateProgress();
+  if(id==='gewerke' && typeof applyConditional==='function') applyConditional();
+}
+function onCheck(id,val){
+  const arr = Array.isArray(state.data[id]) ? state.data[id].slice() : [];
+  const i=arr.indexOf(val);
+  if(i>=0) arr.splice(i,1); else arr.push(val);
+  state.data[id]=arr;
+  saveDraft(); refreshGroup(id); updateProgress();
+  if(id==='gewerke' && typeof applyConditional==='function') applyConditional();
+}
 
 /* ============ RENDER: layout ============ */
 function renderLayout(){
@@ -408,7 +447,6 @@ function renderLayout(){
   renderGroupsInto();      // Task 4
   updateProgress();
 }
-function renderGroupsInto(){ /* no-op until Task 4 */ }
 
 /* ============ PROGRESS ============ */
 function updateProgress(){
