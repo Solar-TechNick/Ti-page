@@ -809,21 +809,23 @@ function refreshSendBtn(){
   if(state.sent){ b.classList.add('sent'); b.textContent='✓ Gesendet – erneut senden'; }
   else { b.classList.add('send'); b.textContent='✉ An Büro senden'; }
 }
-function buildPayload(){
+function buildPayload(photos){
   const d=strip(state.data);
+  d.photos=photos;
   return JSON.stringify(Object.assign({}, d, { _leadId:state.leadId, _sentBefore:state.sent||null }));
 }
 async function doSend(){
   const btn=document.getElementById('send-btn'); if(btn) btn.disabled=true;
   showToast('Wird gesendet…','info');
   try{
-    const fd=new FormData();
-    fd.append('payload', buildPayload());
-    fd.append('website','');
-    // append photo blobs in the same order as state.data.photos so payload.photos[i] aligns with files[i]
     const recs=await photosByLead(state.leadId);
     const byId={}; recs.forEach(r=>byId[r.id]=r);
-    state.data.photos.forEach(p=>{ const r=byId[p.id]; if(r) fd.append('files[]', r.blob, r.name||(p.id+'.jpg')); });
+    // Build payload.photos and files[] from ONE filtered snapshot so index i aligns 1:1
+    const sendPhotos=state.data.photos.filter(p=>byId[p.id]);
+    const fd=new FormData();
+    fd.append('payload', buildPayload(sendPhotos));
+    fd.append('website','');
+    sendPhotos.forEach(p=>{ const r=byId[p.id]; fd.append('files[]', r.blob, r.name||(p.id+'.jpg')); });
     const res=await fetch(API_BASE+'/lead.php',{method:'POST',body:fd});
     const data=await res.json().catch(()=>({}));
     if(res.status===413){ showToast('Dateien zu groß','error'); }
