@@ -190,7 +190,275 @@ const API_BASE = "https://api.technik-prignitz.de";
 
 function esc(s){const d=document.createElement('div');d.textContent=(s==null?'':String(s));return d.innerHTML;}
 
+/* ============ SCHEMA ============ */
+const GEWERKE = ["Photovoltaik","Batteriespeicher","Wärmepumpe","Wallbox / Ladesäule","Austausch Anlage","Erweiterung PV","Notstrom / Insel"];
+const ROOF_FIELDS = [
+  {id:"azimut",label:"Ausrichtung",ph:"z.B. Süd / 180°"},{id:"neigung",label:"Neigung (°)"},
+  {id:"laenge",label:"Länge (m)"},{id:"breite",label:"Breite (m)"},
+  {id:"verschattung",label:"Verschattung"},{id:"module",label:"Module (ca.)"}
+];
+const PHOTO_CATEGORIES = ["Dach","Zählerschrank","Hausanschluss","Heizraum","WP-Platz","Sparren","Garage/Wallbox","Grundriss","Stromrechnung","Sonstiges"];
+
+// trade: section only auto-expands when this gewerk is selected (stays collapsed otherwise, never hidden)
+const SECTIONS = [
+  { id:"kunde", num:1, title:"Kundendaten", icon:"👤", fields:[
+    {id:"anrede",label:"Anrede",type:"radio",options:["Herr","Frau","Firma","Divers"]},
+    {type:"row",children:[{id:"vorname",label:"Vorname",type:"text"},{id:"nachname",label:"Nachname",type:"text"}]},
+    {type:"row",children:[{id:"firma",label:"Firma",type:"text"},{id:"funktion",label:"Funktion / Titel",type:"text"}]},
+    {type:"row",children:[{id:"strasse",label:"Straße, Nr.",type:"text"},{id:"plzort",label:"PLZ, Ort",type:"text"}]},
+    {type:"row",children:[{id:"telefon",label:"Telefon",type:"text"},{id:"mobil",label:"Mobil",type:"text"}]},
+    {type:"row",children:[{id:"email",label:"E-Mail",type:"text"},{id:"fax",label:"Fax",type:"text"}]},
+    {id:"abw_adresse",label:"Abweichende Objektadresse",type:"radio",options:["Nein","Ja"]},
+    {id:"objektadresse",label:"Objektadresse",type:"text",full:true},
+  ]},
+  { id:"interesse", num:2, title:"Interesse / Gewerke", icon:"⚡", fields:[
+    {id:"gewerke",label:"Welche Systeme?",type:"checkbox",options:GEWERKE},
+    {id:"zeithorizont",label:"Zeithorizont",type:"radio",options:["< 3 Mon.","3–6 Mon.","6–12 Mon.","> 12 Mon."]},
+    {id:"entscheidung",label:"Entscheidung",type:"radio",options:["Ja","Vergleichsangebote","Info-Phase"]},
+    {id:"finanzierung",label:"Finanzierung",type:"radio",options:["Eigenmittel","Finanzierung","KfW prüfen"]},
+  ]},
+  { id:"objekt", num:3, title:"Objekt / Gebäude", icon:"🏠", fields:[
+    {id:"gebaeudetyp",label:"Gebäudetyp",type:"checkbox",options:["EFH","MFH","Reihenhaus","Gewerbe/Halle","Büro","Landwirtschaft","Öffentlich","Sonstiges"]},
+    {type:"row",children:[{id:"baujahr",label:"Baujahr",type:"text"},{id:"wohneinheiten",label:"Wohneinheiten",type:"text"}]},
+    {type:"row",children:[{id:"nutzflaeche",label:"Nutzfläche (m²)",type:"text"},{id:"gebaeudehoehe",label:"Höhe (m)",type:"text"}]},
+    {type:"row",children:[{id:"wandaufbau",label:"Wandaufbau",type:"text"},{id:"denkmalschutz",label:"Denkmalschutz",type:"text",ph:"Ja/Nein"}]},
+    {type:"subheader",label:"Dach"},
+    {id:"anz_dachflaechen",label:"Belegung",type:"radio",options:["1 Dachfläche","2 Dachflächen (z.B. Ost/West)","3+ Dachflächen"]},
+    {id:"dachform",label:"Dachform",type:"checkbox",options:["Satteldach","Walmdach","Pultdach","Flachdach","Krüppelwalm","Sonstiges"]},
+    {id:"dacheindeckung",label:"Eindeckung",type:"checkbox",options:["Ziegel","Tegalit","Trapezblech","Schiefer","Bitumen/Folie","Sonstiges"]},
+    {type:"subheader",label:"Dachflächen"},
+    {type:"roofs",id:"roofs"},
+    {type:"subheader",label:"Dachkonstruktion"},
+    {type:"row",children:[{id:"sparrenabstand",label:"Sparrenabstand (cm)",type:"text"},{id:"sparrenstaerke",label:"Sparrenstärke (mm)",type:"text"}]},
+    {type:"row",children:[{id:"blitzschutz",label:"Blitzschutz?",type:"text"},{id:"dach_zustand",label:"Dachzustand",type:"text",ph:"gut / sanierungsbed."}]},
+    {id:"geruestbedarf",label:"Gerüstbedarf",type:"radio",options:["Nein","Ja","Kunde stellt"]},
+    {id:"lager",label:"Lagermöglichkeit",type:"radio",options:["Nein","Ja"]},
+  ]},
+  { id:"strom", num:4, title:"Stromverbrauch / Bestand", icon:"🔌", fields:[
+    {type:"row",children:[{id:"jahresverbrauch",label:"Jahresverbrauch (kWh)",type:"text"},{id:"stromkosten",label:"Stromkosten (€/a)",type:"text"}]},
+    {type:"row",children:[{id:"arbeitspreis",label:"Arbeitspreis (ct/kWh)",type:"text"},{id:"grundpreis",label:"Grundpreis (€/Mon.)",type:"text"}]},
+    {type:"row",children:[{id:"versorger",label:"Energieversorger",type:"text"},{id:"zaehler_nr",label:"Zähler-Nr.",type:"text"}]},
+    {type:"row",children:[{id:"zaehlerschrank_bj",label:"Zählerschrank BJ",type:"text"},{id:"anz_zaehler",label:"Anz. Zähler",type:"text"}]},
+    {id:"zs_zustand",label:"Zählerschrank-Zustand",type:"radio",options:["OK","Prüfung nötig","Erneuerung nötig"]},
+    {id:"freier_platz",label:"Freier Zählerplatz",type:"radio",options:["Ja","Nein"]},
+    {id:"zusatzverbraucher",label:"Zusatzverbraucher",type:"checkbox",options:["Wärmepumpe","Wallbox","Klimaanlage","Pool/Sauna"]},
+    {type:"subheader",label:"Bestehende PV-Anlage"},
+    {id:"bestandsanlage",label:"Vorhanden",type:"radio",options:["Nein","Ja"]},
+    {type:"row",children:[{id:"ibn_jahr",label:"IBN (Jahr)",type:"text"},{id:"leistung_kwp",label:"Leistung (kWp)",type:"text"}]},
+    {type:"row",children:[{id:"wr_typ_bestand",label:"WR Typ",type:"text"},{id:"einspeiseverg",label:"EEG (ct/kWh)",type:"text"}]},
+  ]},
+  { id:"pv", num:5, title:"PV-Anlage (Planung)", icon:"☀️", trade:"Photovoltaik", fields:[
+    {id:"zielsetzung",label:"Zielsetzung",type:"radio",options:["Eigenverbrauch","Volleinspeisung","Autarkie/Notstrom"]},
+    {type:"row",children:[{id:"gew_leistung",label:"Leistung (kWp)",type:"text"},{id:"anz_module",label:"Module (ca.)",type:"text"}]},
+    {type:"row",children:[{id:"modul_praef",label:"Modul-Präferenz",type:"text"},{id:"leistungsklasse",label:"Leistungsklasse (Wp)",type:"text"}]},
+    {type:"row",children:[{id:"wr_praef",label:"WR-Präferenz",type:"text"},{id:"hybrid_wr",label:"Hybrid-WR?",type:"text"}]},
+    {id:"wr_typ",label:"Wechselrichter Typ",type:"radio",options:["Budget","Mittelklasse","Qualität"]},
+    {id:"modul_opt",label:"Modul-Optimierer",type:"radio",options:["Nein","Ja","Nur bei Verschattung"]},
+    {id:"ueberspannung",label:"Überspannungsschutz",type:"radio",options:["Typ 1+2","Typ 2","Nicht gewünscht"]},
+    {id:"monitoring",label:"Monitoring",type:"checkbox",options:["LAN","WLAN","Mobilfunk"]},
+    {type:"subheader",label:"Aufstellungsort WR"},
+    {id:"wr_ort",label:"Standort",type:"checkbox",options:["Keller","HWR","Dachboden","Garage","Außen","Sonstiges"]},
+    {type:"row",children:[{id:"kabel_dach_wr",label:"Kabel Dach→WR (m)",type:"text"},{id:"kabel_wr_zaehler",label:"Kabel WR→Zähler (m)",type:"text"}]},
+  ]},
+  { id:"batterie", num:6, title:"Batteriespeicher", icon:"🔋", trade:"Batteriespeicher", fields:[
+    {id:"speicher_gew",label:"Speicher gewünscht",type:"radio",options:["Nein","Ja","Später nachrüstbar"]},
+    {type:"row",children:[{id:"kapazitaet",label:"Kapazität (kWh)",type:"text"},{id:"bat_hersteller",label:"Hersteller",type:"text"}]},
+    {id:"bat_aufstellort",label:"Aufstellort",type:"text",full:true},
+    {id:"kopplung",label:"Kopplung",type:"radio",options:["AC-gekoppelt","DC-gekoppelt","Hybrid-WR"]},
+    {id:"notstrom",label:"Notstrom",type:"radio",options:["Nicht gewünscht","Einphasig","3-phasig","Inselfähig"]},
+  ]},
+  { id:"wp", num:7, title:"Wärmepumpe", icon:"🌡️", trade:"Wärmepumpe", fields:[
+    {id:"wp_bauart",label:"Bauart",type:"radio",options:["Luft-Wasser","Sole-Wasser","Wasser-Wasser","Brauchwasser-WP"]},
+    {type:"subheader",label:"Bestehende Heizung"},
+    {id:"heizungsart",label:"Heizungsart",type:"checkbox",options:["Öl","Gas","Holz/Pellets","Strom","Fernwärme","Wärmepumpe"]},
+    {type:"row",children:[{id:"kessel_bj",label:"Kessel-BJ",type:"text"},{id:"heizlast",label:"Heizlast (kW)",type:"text"}]},
+    {type:"row",children:[{id:"heiz_verbrauch",label:"Jahresverbr.",type:"text"},{id:"vorlauftemp",label:"Vorlauf (°C)",type:"text"}]},
+    {id:"waermeuebergabe",label:"Wärmeübergabe",type:"checkbox",options:["Fußbodenheizung","Heizkörper","Mischsystem","Flächenheizung"]},
+    {id:"warmwasser",label:"Warmwasser",type:"radio",options:["Über Heizung","Sep. Speicher","Durchlauferhitzer"]},
+    {type:"row",children:[{id:"personen",label:"Personen",type:"text"},{id:"ww_verbrauch",label:"WW-Verbrauch",type:"text",ph:"gering/mittel/hoch"}]},
+    {type:"subheader",label:"Gebäudehülle"},
+    {id:"daemmung_dach",label:"Dach",type:"radio",options:["Keine","Teilweise","Vollständig"]},
+    {id:"daemmung_fassade",label:"Fassade",type:"radio",options:["Keine","Teilweise","Vollständig"]},
+    {id:"fenster",label:"Fenster",type:"radio",options:["Einfach","2-fach","3-fach"]},
+    {type:"row",children:[{id:"energieausweis",label:"Energieausweis?",type:"text",ph:"Ja/Nein"},{id:"energieausweis_wert",label:"Wert kWh/(m²·a)",type:"text"}]},
+    {type:"subheader",label:"Aufstellort WP"},
+    {type:"row",children:[{id:"wp_aussen",label:"Außengerät",type:"text"},{id:"abstand_nachbar",label:"Abstand Nachbar (m)",type:"text"}]},
+    {type:"row",children:[{id:"wp_innen",label:"Innengerät",type:"text"},{id:"leitungsweg",label:"Leitungsweg (m)",type:"text"}]},
+  ]},
+  { id:"wallbox", num:8, title:"Wallbox", icon:"🚗", trade:"Wallbox / Ladesäule", fields:[
+    {type:"row",children:[{id:"anz_ladepunkte",label:"Ladepunkte",type:"text"},{id:"ladeleistung",label:"Leistung",type:"text",ph:"11/22kW/DC"}]},
+    {id:"install_ort",label:"Installationsort",type:"checkbox",options:["Garage","Carport","Tiefgarage","Parkplatz","Fassade","Sonstiges"]},
+    {type:"row",children:[{id:"efahrzeug",label:"E-Fahrzeug",type:"text"},{id:"steckertyp",label:"Stecker",type:"text"}]},
+    {type:"row",children:[{id:"kabel_wallbox",label:"Kabel Zähler→Box (m)",type:"text"},{id:"befestigung",label:"Wand/Stele",type:"text"}]},
+    {id:"funktionen",label:"Funktionen",type:"checkbox",options:["PV-Überschuss","Lastmgmt.","RFID","Eichrecht","App","MID-Zähler","Backup","Dyn. Lastmgmt."]},
+    {id:"netzanmeldung_wb",label:"Netzanmeldung",type:"radio",options:["Wir","Kunde","Bereits erfolgt"]},
+  ]},
+  { id:"module", num:9, title:"PV-Module", icon:"🔲", trade:"Photovoltaik", fields:[
+    {id:"modulfarbe",label:"Modulfarbe",type:"radio",options:["Schwarz","Blau"]},
+    {id:"rahmenfarbe",label:"Rahmenfarbe",type:"radio",options:["Schwarz","Silber"]},
+    {id:"modul_typ_qs",label:"Modul-Typ",type:"radio",options:["Budget","Mittelklasse","Qualität"]},
+  ]},
+  { id:"netz", num:10, title:"Netzanschluss", icon:"⚙️", fields:[
+    {type:"row",children:[{id:"netzbetreiber",label:"Netzbetreiber",type:"text"},{id:"hausanschluss",label:"Hausanschluss (A)",type:"text"}]},
+    {type:"row",children:[{id:"phasen",label:"Phasen",type:"text"},{id:"vorzaehlersich",label:"Vorzählersich. (A)",type:"text"}]},
+    {type:"row",children:[{id:"hauptleitung",label:"Hauptleitung (mm²)",type:"text"},{id:"imsys",label:"iMSys",type:"text",ph:"Ja/Nein/Geplant"}]},
+  ]},
+  { id:"notizen", num:11, title:"Notizen", icon:"📝", fields:[
+    {id:"notizen",label:"Besonderheiten, Kundenwünsche, technische Hinweise",type:"textarea"},
+  ]},
+  { id:"unterlagen", num:12, title:"Unterlagen / Fotos", icon:"📎", fields:[
+    {id:"unterlagen",label:"Mitgenommen",type:"checkbox",options:["Stromrechnung","Heizkostenabr.","Grundriss","Foto Dach","Foto Zählersch.","Foto Hausanschl.","Foto Heizraum","Foto WP-Platz","Foto Sparren","Foto Garage/WB","Baupläne","Energieausweis"]},
+    {type:"photos",id:"photos"},
+  ]},
+];
+
+const META = { datum:{label:"Datum",type:"date"}, berater:{label:"Berater",type:"text"}, lead_nr:{label:"Lead-Nr.",type:"text"} };
+
+/* ============ STATE ============ */
+function newLeadId(){ return (self.crypto && crypto.randomUUID) ? crypto.randomUUID() : 'l'+Date.now()+Math.random().toString(16).slice(2); }
+function todayISO(){ return new Date().toISOString().split('T')[0]; }
+
+const state = {
+  leadId: newLeadId(),
+  data: { datum: todayISO(), roofs:[{}], photos:[] },
+  open: {},          // secId -> bool
+  showAll: false,
+  activeSection: 'kunde',
+  sent: null,        // {serverId, sentAt} once sent
+  toastTimer: null,
+  savedList: [],
+};
+
+/* ============ STORAGE (localStorage) ============ */
+const LS_DRAFT='lead-draft', LS_LIST='lead-list';
+function saveDraft(){ try{ localStorage.setItem(LS_DRAFT, JSON.stringify({leadId:state.leadId,data:state.data,sent:state.sent})); }catch(_){} }
+function loadDraft(){ try{ const s=localStorage.getItem(LS_DRAFT); return s?JSON.parse(s):null; }catch(_){ return null; } }
+function loadList(){ try{ const s=localStorage.getItem(LS_LIST); return s?JSON.parse(s):[]; }catch(_){ return []; } }
+
+/* ============ HELPERS ============ */
+function isFilled(v){ return Array.isArray(v) ? v.length>0 : (v!=null && String(v).trim()!==''); }
+function getFieldIds(){
+  const ids=[];
+  SECTIONS.forEach(s=>s.fields.forEach(function walk(f){
+    if(f.type==='row') return f.children.forEach(walk);
+    if(f.type==='subheader'||f.type==='roofs'||f.type==='photos') return;
+    if(f.id) ids.push(f.id);
+  }));
+  return ids;
+}
+function sectionFieldIds(sec){
+  const ids=[];
+  sec.fields.forEach(function walk(f){
+    if(f.type==='row') return f.children.forEach(walk);
+    if(f.type==='subheader'||f.type==='roofs'||f.type==='photos') return;
+    if(f.id) ids.push(f.id);
+  });
+  return ids;
+}
+function sectionProgress(sec){
+  const ids=sectionFieldIds(sec);
+  const filled=ids.filter(id=>isFilled(state.data[id])).length;
+  return {filled, total:ids.length};
+}
+function getProgress(){
+  const ids=getFieldIds();
+  const filled=ids.filter(id=>isFilled(state.data[id])).length;
+  return ids.length ? (filled/ids.length)*100 : 0;
+}
+
+/* ============ RENDER: fields ============ */
+function renderField(f){
+  if(f.type==='subheader') return '<div class="sub-header">'+esc(f.label)+'</div>';
+  if(f.type==='row') return '<div class="row">'+f.children.map(renderField).join('')+'</div>';
+  if(f.type==='roofs') return '<div id="roofs"></div>';   // filled in Task 8
+  if(f.type==='photos') return '<div id="photos-block"></div>'; // filled in Task 10
+  if(f.type==='text'||f.type==='date'){
+    const v=state.data[f.id]||'';
+    return '<div class="field'+(f.full?' full':'')+'"><label>'+esc(f.label)+'</label>'
+      +'<input type="'+f.type+'" value="'+esc(v)+'" placeholder="'+esc(f.ph||'')+'" data-field="'+f.id+'"></div>';
+  }
+  if(f.type==='textarea'){
+    const v=state.data[f.id]||'';
+    return '<div class="field full"><label>'+esc(f.label)+'</label><textarea data-field="'+f.id+'">'+esc(v)+'</textarea></div>';
+  }
+  if(f.type==='radio'||f.type==='checkbox') return renderGroup(f); // Task 4
+  return '';
+}
+function renderGroup(f){ return '<div class="optgroup" id="grp-'+f.id+'"></div>'; } // replaced in Task 4
+
+/* ============ RENDER: layout ============ */
+function renderLayout(){
+  let main='<div class="main">';
+  // meta card
+  main+='<div class="card open"><div class="sec-body" style="padding-top:14px"><div class="row">'
+    + Object.keys(META).map(k=>{
+        const m=META[k], v=state.data[k]||'';
+        return '<div class="field"><label>'+esc(m.label)+'</label><input type="'+m.type+'" value="'+esc(v)+'" data-field="'+k+'"></div>';
+      }).join('')
+    + '</div></div></div>';
+  // sections
+  SECTIONS.forEach(s=>{
+    main+='<div class="card open" id="sec-'+s.id+'">'
+      + '<div class="sec-body">'
+      + s.fields.map(renderField).join('')
+      + '</div></div>';
+  });
+  main+='</div>';
+  document.querySelector('.layout').innerHTML = main;
+  renderGroupsInto();      // Task 4
+  updateProgress();
+}
+function renderGroupsInto(){ /* no-op until Task 4 */ }
+
+/* ============ PROGRESS ============ */
+function updateProgress(){
+  const p=getProgress();
+  const c = p<30 ? 'var(--red)' : p<70 ? 'var(--amber)' : 'var(--green)';
+  const fill=document.getElementById('progress-fill'), txt=document.getElementById('progress-text');
+  if(fill){ fill.style.width=p+'%'; fill.style.background=c; }
+  if(txt){ txt.textContent=Math.round(p)+'% ausgefüllt'; }
+  SECTIONS.forEach(s=>{
+    const b=document.getElementById('badge-'+s.id); if(!b) return;
+    const {filled,total}=sectionProgress(s);
+    b.textContent=filled+' / '+total;
+    b.classList.toggle('done', total>0 && filled===total);
+  });
+  const si=document.getElementById('saved-ind'); if(si) si.textContent='gespeichert';
+}
+
+/* ============ DELEGATED EVENTS ============ */
+function onInput(e){
+  const el=e.target;
+  if(el.dataset.field){ state.data[el.dataset.field]=el.value; saveDraft(); updateProgress(); return; }
+  if(el.dataset.roof!=null){ onRoofInput(el); return; } // Task 8
+}
+function onClick(e){
+  const a=e.target.closest('[data-act]'); if(!a) return;
+  const act=a.dataset.act;
+  if(act==='radio') return onRadio(a.dataset.field, a.dataset.val);   // Task 4
+  if(act==='check') return onCheck(a.dataset.field, a.dataset.val);   // Task 4
+  // later: toggle, nav, showall, roof-add, roof-del, photo-del, save, new, load, reset, export, import, pdf, send, print, loadentry, closemodal
+  if(typeof onClickExtra==='function') onClickExtra(act, a, e);
+}
+function onChange(e){ if(typeof onChangeExtra==='function') onChangeExtra(e); }
+
+/* ============ TOAST ============ */
+function showToast(msg,type){
+  clearTimeout(state.toastTimer);
+  const el=document.getElementById('toast');
+  el.textContent=msg;
+  el.style.background = type==='success' ? 'var(--green)' : type==='error' ? 'var(--red)' : 'var(--brand-2)';
+  el.style.display='block';
+  state.toastTimer=setTimeout(()=>el.style.display='none', 2600);
+}
+
+/* ============ BOOT ============ */
 function boot(){
+  const d=loadDraft();
+  if(d && d.data){ state.leadId=d.leadId||state.leadId; state.data=Object.assign({datum:todayISO(),roofs:[{}],photos:[]}, d.data); state.sent=d.sent||null; }
+  if(!Array.isArray(state.data.roofs)||!state.data.roofs.length) state.data.roofs=[{}];
+  if(!Array.isArray(state.data.photos)) state.data.photos=[];
+
   document.getElementById('app').innerHTML =
     '<div class="hdr">'
     + '<img class="brand" src="assets/lead/icon-512.png" alt="">'
@@ -198,14 +466,20 @@ function boot(){
     + '<div class="sub">Technik- &amp; Instandsetzungs GmbH · PV · WP · Speicher · Wallbox</div></div>'
     + '<div class="saved" id="saved-ind"></div>'
     + '</div>'
-    + '<div class="layout"><div class="main"><p style="padding:24px;color:var(--muted)">…</p></div></div>';
+    + '<div class="layout"></div>';
+
+  const app=document.getElementById('app');
+  app.addEventListener('input', onInput);
+  app.addEventListener('click', onClick);
+  app.addEventListener('change', onChange);
+
+  renderLayout();
+  if(d) setTimeout(()=>showToast('Letzten Stand geladen','success'), 400);
 }
 
-/* service worker */
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(()=>{}));
 }
-
 boot();
 </script>
 </body>
