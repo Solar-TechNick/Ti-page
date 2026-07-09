@@ -335,6 +335,37 @@ function saveDraft(){ try{ localStorage.setItem(LS_DRAFT, JSON.stringify({leadId
 function loadDraft(){ try{ const s=localStorage.getItem(LS_DRAFT); return s?JSON.parse(s):null; }catch(_){ return null; } }
 function loadList(){ try{ const s=localStorage.getItem(LS_LIST); return s?JSON.parse(s):[]; }catch(_){ return []; } }
 
+/* ---- IndexedDB (photo blobs) ---- */
+const DB_NAME='ti-leads', DB_VER=1, STORE='photos';
+const ALLOWED_MIME=['image/jpeg','image/png','image/heic','image/webp','application/pdf'];
+const MAX_FILE_BYTES=25*1024*1024;
+function idb(){ return new Promise((res,rej)=>{ const r=indexedDB.open(DB_NAME,DB_VER);
+  r.onupgradeneeded=()=>{ const db=r.result; if(!db.objectStoreNames.contains(STORE)){ const os=db.createObjectStore(STORE,{keyPath:'id'}); os.createIndex('leadId','leadId',{unique:false}); } };
+  r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); }); }
+function _tx(db,mode,fn){ return new Promise((res,rej)=>{ const t=db.transaction(STORE,mode); const rq=fn(t.objectStore(STORE)); t.oncomplete=()=>res(rq&&rq.result); t.onerror=()=>rej(t.error); t.onabort=()=>rej(t.error); }); }
+async function photoPut(rec){ const db=await idb(); return _tx(db,'readwrite',s=>s.put(rec)); }
+async function photoDelete(id){ const db=await idb(); return _tx(db,'readwrite',s=>s.delete(id)); }
+async function photosByLead(leadId){ const db=await idb(); return new Promise((res,rej)=>{ const out=[]; const r=db.transaction(STORE).objectStore(STORE).index('leadId').openCursor(IDBKeyRange.only(leadId)); r.onsuccess=()=>{ const c=r.result; if(c){ out.push(c.value); c.continue(); } else res(out); }; r.onerror=()=>rej(r.error); }); }
+async function photosDeleteByLead(leadId){ const recs=await photosByLead(leadId); for(const r of recs) await photoDelete(r.id); }
+
+/* ---- image downscale ---- */
+function _downscale(bitmap,maxEdge,q){ const {width,height}=bitmap; const scale=Math.min(1,maxEdge/Math.max(width,height));
+  const w=Math.max(1,Math.round(width*scale)), h=Math.max(1,Math.round(height*scale));
+  const c=document.createElement('canvas'); c.width=w; c.height=h; c.getContext('2d').drawImage(bitmap,0,0,w,h);
+  return new Promise(res=>c.toBlob(res,'image/jpeg',q)); }
+async function processImage(file){
+  if(!file.type.startsWith('image/')) return {blob:file, thumb:null, isImage:false, mime:file.type};
+  try{
+    const bmp=await createImageBitmap(file);
+    const full=await _downscale(bmp,1600,0.8);
+    const thumb=await _downscale(bmp,220,0.7);
+    if(bmp.close) bmp.close();
+    return {blob:full, thumb, isImage:true, mime:'image/jpeg'};
+  }catch(_){ // HEIC/unsupported decode: keep original
+    return {blob:file, thumb:null, isImage:false, mime:file.type};
+  }
+}
+
 /* ============ HELPERS ============ */
 function isFilled(v){ return Array.isArray(v) ? v.length>0 : (v!=null && String(v).trim()!==''); }
 function getFieldIds(){
@@ -452,6 +483,63 @@ function onRoofInput(el){
 }
 function addRoof(){ state.data.roofs.push({}); saveDraft(); renderRoofs(); }
 function removeRoof(i){ state.data.roofs.splice(i,1); if(!state.data.roofs.length) state.data.roofs.push({}); saveDraft(); renderRoofs(); }
+
+/* ============ RENDER: photos ============ */
+function photoCardHTML(p){
+  const catOpts=['<option value="">Kategorie…</option>']
+    .concat(PHOTO_CATEGORIES.map(c=>'<option'+(p.category===c?' selected':'')+'>'+esc(c)+'</option>')).join('');
+  const thumb = p._thumbUrl ? '<img class="thumb" src="'+p._thumbUrl+'" alt="">' : '<div class="thumb">📄</div>';
+  return '<div class="pcard">'+thumb
+    +'<div class="meta"><div class="nm" title="'+esc(p.name)+'">'+esc(p.name)+'</div>'
+    +'<select data-act="photo-cat" data-id="'+p.id+'">'+catOpts+'</select>'
+    +'<button class="rm" data-act="photo-del" data-id="'+p.id+'">Entfernen</button></div></div>';
+}
+async function renderPhotos(){
+  const host=document.getElementById('photos-block'); if(!host) return;
+  host.innerHTML =
+    '<div class="sub-header">Fotos &amp; Dateien</div>'
+    +'<div class="photo-tools">'
+    +'<label class="add-btn" style="cursor:pointer">📷 Foto aufnehmen'
+    +'<input id="cam-input" type="file" accept="image/*" capture="environment" multiple hidden></label>'
+    +'<label class="add-btn" style="cursor:pointer">📎 Datei wählen'
+    +'<input id="file-input" type="file" accept="image/*,application/pdf" multiple hidden></label>'
+    +'</div><div class="photo-grid" id="photo-grid"></div>';
+  await paintPhotoGrid();
+}
+async function paintPhotoGrid(){
+  const grid=document.getElementById('photo-grid'); if(!grid) return;
+  const recs=await photosByLead(state.leadId);
+  const byId={}; recs.forEach(r=>byId[r.id]=r);
+  // revoke old object URLs
+  (state.data.photos||[]).forEach(p=>{ if(p._thumbUrl){ URL.revokeObjectURL(p._thumbUrl); p._thumbUrl=null; } });
+  state.data.photos.forEach(p=>{ const r=byId[p.id]; if(r&&r.thumb) p._thumbUrl=URL.createObjectURL(r.thumb); });
+  grid.innerHTML = state.data.photos.length ? state.data.photos.map(photoCardHTML).join('')
+    : '<p style="color:var(--muted);font-size:13px">Noch keine Fotos.</p>';
+}
+async function addPhotos(fileList){
+  const files=Array.from(fileList||[]);
+  for(const file of files){
+    if(file.size>MAX_FILE_BYTES){ showToast(file.name+' ist zu groß (max. 25 MB)','error'); continue; }
+    if(!ALLOWED_MIME.includes(file.type) && !file.type.startsWith('image/')){ showToast('Typ nicht erlaubt: '+file.name,'error'); continue; }
+    const pid=newLeadId();
+    let proc;
+    try{ proc=await processImage(file); }
+    catch(_){ showToast('Fehler bei '+file.name,'error'); continue; }
+    const rec={ id:pid, leadId:state.leadId, category:'', blob:proc.blob, thumb:proc.thumb,
+      name:file.name, mime:proc.mime||file.type, size:proc.blob.size, isImage:proc.isImage, createdAt:Date.now() };
+    try{ await photoPut(rec); }
+    catch(err){ showToast('Speicher voll?','error'); console.error(err); continue; }
+    state.data.photos.push({ id:pid, category:'', name:file.name, mime:rec.mime, size:rec.size, isImage:proc.isImage });
+  }
+  saveDraft(); await paintPhotoGrid(); updateProgress();
+}
+async function removePhoto(id){
+  await photoDelete(id).catch(()=>{});
+  const p=state.data.photos.find(x=>x.id===id); if(p&&p._thumbUrl) URL.revokeObjectURL(p._thumbUrl);
+  state.data.photos=state.data.photos.filter(x=>x.id!==id);
+  saveDraft(); await paintPhotoGrid();
+}
+function setPhotoCategory(id,val){ const p=state.data.photos.find(x=>x.id===id); if(p){ p.category=val; saveDraft(); } }
 
 /* ============ RENDER: layout ============ */
 function sectionCardHTML(s){
@@ -587,10 +675,14 @@ function onClick(e){
   }
   if(act==='roof-add') return addRoof();
   if(act==='roof-del') return removeRoof(+a.dataset.idx);
+  if(act==='photo-del') return removePhoto(a.dataset.id);
   if(typeof onClickExtra==='function') onClickExtra(act, a, e);
 }
 function onChange(e){
   if(e.target.id==='jump'){ return gotoSection(e.target.value); }
+  if(e.target.id==='cam-input' || e.target.id==='file-input'){ addPhotos(e.target.files); e.target.value=''; return; }
+  const cat=e.target.closest('[data-act="photo-cat"]');
+  if(cat){ return setPhotoCategory(cat.dataset.id, cat.value); }
   if(typeof onChangeExtra==='function') onChangeExtra(e);
 }
 
