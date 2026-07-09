@@ -171,7 +171,7 @@ button{font-family:inherit}
 }
 
 /* ---- Print / PDF document (built off-screen) ---- */
-#pdf-doc{display:none}
+#pdf-mount{position:fixed;left:-99999px;top:0;width:820px}
 </style>
 </head>
 <body>
@@ -814,7 +814,7 @@ function pdfFilename(){
   parts.push(state.data.datum||todayISO());
   return parts.join('_')+'.pdf';
 }
-function fmtVal(v){ return Array.isArray(v) ? v.join(', ') : esc(v); }
+function fmtVal(v){ return Array.isArray(v) ? v.map(esc).join(', ') : esc(v); }
 function sectionPrintHTML(s){
   const rows=[];
   s.fields.forEach(function walk(f){
@@ -856,10 +856,11 @@ async function buildPrintDoc(){
   h+='<div class="head"><div><h2>Lead-Aufnahmebogen</h2>'
     +'<div style="font-size:11px;color:#5a6b7b">Technik- &amp; Instandsetzungs GmbH · PV · Wärmepumpe · Speicher · Wallbox</div></div>'
     +'<div class="r">'
-    +(state.data.lead_nr?'<div style="font-weight:800;color:#2264a8">Lead-Nr.: '+esc(state.data.lead_nr)+'</div>':'')
-    +(kunde?'<div style="font-weight:700">'+esc(kunde)+'</div>':'')
-    +(state.data.firma?'<div>'+esc(state.data.firma)+'</div>':'')
-    +(state.data.datum?'<div style="color:#888">'+esc(state.data.datum)+'</div>':'')
+    +(isFilled(state.data.lead_nr)?'<div style="font-weight:800;color:#2264a8">Lead-Nr.: '+esc(state.data.lead_nr)+'</div>':'')
+    +(isFilled(kunde)?'<div style="font-weight:700">'+esc(kunde)+'</div>':'')
+    +(isFilled(state.data.firma)?'<div>'+esc(state.data.firma)+'</div>':'')
+    +(isFilled(state.data.datum)?'<div style="font-size:11px;color:#888;margin-top:2px">'+esc(state.data.datum)+'</div>':'')
+    +(isFilled(state.data.berater)?'<div style="font-size:11px;color:#888">Berater: '+esc(state.data.berater)+'</div>':'')
     +'</div></div>';
   h+=SECTIONS.map(sectionPrintHTML).join('');
   // signatures if present
