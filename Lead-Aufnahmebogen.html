@@ -804,6 +804,100 @@ function openMenu(){
 }
 function refreshSendBtn(){ /* filled in Task 11 */ }
 
+/* ============ PDF ============ */
+function fieldLabel(id){ const f=findField(id); return f?f.label:id; }
+function pdfFilename(){
+  const clean=s=>String(s||'').replace(/[^a-zA-Z0-9äöüÄÖÜß\-]/g,'');
+  const parts=['Lead'];
+  if(state.data.lead_nr) parts.push(clean(state.data.lead_nr));
+  if(state.data.nachname) parts.push(clean(state.data.nachname));
+  parts.push(state.data.datum||todayISO());
+  return parts.join('_')+'.pdf';
+}
+function fmtVal(v){ return Array.isArray(v) ? v.join(', ') : esc(v); }
+function sectionPrintHTML(s){
+  const rows=[];
+  s.fields.forEach(function walk(f){
+    if(f.type==='row') return f.children.forEach(walk);
+    if(f.type==='subheader'){ rows.push('<div class="ps">'+esc(f.label)+'</div>'); return; }
+    if(f.type==='roofs' || f.type==='photos') return;
+    if(!f.id) return;
+    const v=state.data[f.id];
+    if(!isFilled(v)) return;
+    rows.push('<div class="pr"><span class="pk">'+esc(f.label)+':</span> <span class="pv">'+fmtVal(v)+'</span></div>');
+  });
+  // roofs (only in objekt)
+  if(s.id==='objekt'){
+    (state.data.roofs||[]).forEach((roof,i)=>{
+      const parts=ROOF_FIELDS.filter(rf=>isFilled(roof&&roof[rf.id])).map(rf=>esc(rf.label)+': '+esc(roof[rf.id]));
+      if(parts.length) rows.push('<div class="pr"><span class="pk">Dachfläche '+(i+1)+':</span> <span class="pv">'+parts.join(' · ')+'</span></div>');
+    });
+  }
+  // drop subheaders with no following rows
+  const cleaned=[]; for(let i=0;i<rows.length;i++){ const isHdr=rows[i].indexOf('class="ps"')>=0;
+    if(isHdr && (i===rows.length-1 || rows[i+1].indexOf('class="ps"')>=0)) continue; cleaned.push(rows[i]); }
+  if(!cleaned.length) return '';
+  return '<div class="pblock"><h3>'+s.num+'. '+esc(s.title)+'</h3>'+cleaned.join('')+'</div>';
+}
+async function buildPrintDoc(){
+  const kunde=[state.data.vorname,state.data.nachname].filter(Boolean).join(' ');
+  let h='<div id="pdf-doc" style="display:block;font-family:DM Sans,sans-serif;color:#1e2a37;padding:4px 8px">';
+  h+='<style>'
+    +'#pdf-doc h2{font-size:18px;color:#2264a8;margin:0} #pdf-doc .head{display:flex;justify-content:space-between;'
+    +'border-bottom:3px solid #2264a8;padding-bottom:8px;margin-bottom:10px} #pdf-doc .head .r{text-align:right;font-size:12px;color:#333}'
+    +'#pdf-doc .pblock{border:1px solid #e3e9f0;border-radius:6px;padding:8px 10px;margin-bottom:8px;break-inside:avoid}'
+    +'#pdf-doc h3{font-size:13px;color:#163d64;margin:0 0 6px;border-bottom:1px solid #eef2f7;padding-bottom:3px}'
+    +'#pdf-doc .pr{font-size:12px;margin:2px 0} #pdf-doc .pk{color:#5a6b7b} #pdf-doc .pv{font-weight:600}'
+    +'#pdf-doc .ps{font-size:11px;font-weight:700;color:#2264a8;margin:6px 0 2px;text-transform:uppercase}'
+    +'#pdf-doc .pgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:4px}'
+    +'#pdf-doc .pgrid figure{margin:0;break-inside:avoid} #pdf-doc .pgrid img{width:100%;border:1px solid #ddd;border-radius:4px}'
+    +'#pdf-doc figcaption{font-size:10px;color:#5a6b7b;margin-top:2px}'
+    +'</style>';
+  h+='<div class="head"><div><h2>Lead-Aufnahmebogen</h2>'
+    +'<div style="font-size:11px;color:#5a6b7b">Technik- &amp; Instandsetzungs GmbH · PV · Wärmepumpe · Speicher · Wallbox</div></div>'
+    +'<div class="r">'
+    +(state.data.lead_nr?'<div style="font-weight:800;color:#2264a8">Lead-Nr.: '+esc(state.data.lead_nr)+'</div>':'')
+    +(kunde?'<div style="font-weight:700">'+esc(kunde)+'</div>':'')
+    +(state.data.firma?'<div>'+esc(state.data.firma)+'</div>':'')
+    +(state.data.datum?'<div style="color:#888">'+esc(state.data.datum)+'</div>':'')
+    +'</div></div>';
+  h+=SECTIONS.map(sectionPrintHTML).join('');
+  // signatures if present
+  if(isFilled(state.data.sig_0)||isFilled(state.data.sig_1)){
+    h+='<div class="pblock"><h3>Unterschriften</h3>'
+      +(isFilled(state.data.sig_0)?'<div class="pr"><span class="pk">Kunde:</span> <span class="pv">'+esc(state.data.sig_0)+'</span></div>':'')
+      +(isFilled(state.data.sig_1)?'<div class="pr"><span class="pk">Berater:</span> <span class="pv">'+esc(state.data.sig_1)+'</span></div>':'')+'</div>';
+  }
+  // photos
+  const recs=await photosByLead(state.leadId);
+  const imgs=recs.filter(r=>r.isImage);
+  if(imgs.length){
+    const toURL=b=>new Promise(res=>{ const fr=new FileReader(); fr.onload=()=>res(fr.result); fr.readAsDataURL(b); });
+    const figs=[];
+    for(const r of imgs){ const url=await toURL(r.blob); const meta=state.data.photos.find(p=>p.id===r.id);
+      figs.push('<figure><img src="'+url+'"><figcaption>'+esc((meta&&meta.category)||r.name||'')+'</figcaption></figure>'); }
+    h+='<div class="pblock"><h3>Fotos</h3><div class="pgrid">'+figs.join('')+'</div></div>';
+  }
+  h+='</div>';
+  const mount=document.getElementById('pdf-mount'); mount.innerHTML=h;
+  return document.getElementById('pdf-doc');
+}
+async function doPDF(){
+  showToast('PDF wird erstellt…','info');
+  try{
+    const el=await buildPrintDoc();
+    await html2pdf().set({
+      margin:[8,8,10,8], filename:pdfFilename(),
+      image:{type:'jpeg',quality:0.92},
+      html2canvas:{scale:2,useCORS:true,windowWidth:820,logging:false},
+      jsPDF:{unit:'mm',format:'a4',orientation:'portrait'},
+      pagebreak:{mode:['css','legacy']}
+    }).from(el).save();
+    showToast('PDF heruntergeladen ✓','success');
+  }catch(err){ console.error(err); showToast('PDF-Fehler','error'); }
+  finally{ document.getElementById('pdf-mount').innerHTML=''; }
+}
+
 /* ============ BOOT ============ */
 function boot(){
   const d=loadDraft();
